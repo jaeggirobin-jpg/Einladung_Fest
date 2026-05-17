@@ -1,0 +1,389 @@
+/* ===================================================================
+   Anmelde-Landingpage Geschäftsübergabe Jäggi Vollmer
+   =================================================================== */
+
+:root {
+  --gold:        #BF853B;
+  --gold-light:  #C9A877;
+  --gold-soft:   #E5D5B0;
+  --cream:       #EFEADD;
+  --cream-mid:   #F5EEDC;
+  --cream-light: #FDFAF3;
+  --slate:       #4B575D;
+  --slate-dark:  #2A3138;
+  --slate-mid:   #3D4750;
+  --slate-muted: #7A858D;
+  --error:       #C9533B;
+
+  --radius:      14px;
+  --radius-sm:   8px;
+  --ease:        cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: var(--cream-light);
+  background: linear-gradient(160deg, var(--slate-dark) 0%, var(--slate-mid) 100%);
+  min-height: 100vh;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* --- 3D Hero Canvas ----------------------------------------------- */
+
+#hero-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Subtiler Vignetten-Overlay über dem Canvas */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* --- Layout ------------------------------------------------------- */
+
+.page {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+/* --- Glasmorphismus-Karte ----------------------------------------- */
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  background: rgba(253, 250, 243, 0.06);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid rgba(253, 250, 243, 0.14);
+  border-radius: var(--radius);
+  padding: 40px 36px 36px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  animation: cardIn 0.7s var(--ease) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Header / Logo ------------------------------------------------ */
+
+.card__header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  line-height: 1;
+}
+.logo__gold  { color: var(--gold); }
+.logo__slate { color: var(--cream); }
+
+.logo__sub {
+  color: rgba(253, 250, 243, 0.55);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  margin-top: 10px;
+  text-transform: uppercase;
+}
+
+/* --- Hero-Text ---------------------------------------------------- */
+
+.hero-text {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  color: var(--gold-light);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  margin-bottom: 14px;
+}
+
+.headline {
+  color: var(--cream-light);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.divider {
+  width: 40px;
+  height: 1px;
+  background: var(--gold);
+  margin: 18px auto;
+}
+
+.event-line {
+  color: rgba(253, 250, 243, 0.75);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* --- Form --------------------------------------------------------- */
+
+.form { display: block; }
+
+.field { margin-bottom: 16px; }
+
+.field label {
+  display: block;
+  color: rgba(253, 250, 243, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--cream-light);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(253, 250, 243, 0.15);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field input::placeholder { color: rgba(253, 250, 243, 0.35); }
+
+.field input:hover,
+.field select:hover {
+  border-color: rgba(253, 250, 243, 0.28);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.18);
+}
+
+/* Select-Pfeil */
+.field select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23C9A877' stroke-width='1.5'><path d='M1 1l5 5 5-5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px 8px;
+  padding-right: 38px;
+}
+
+.field select option {
+  background: var(--slate-dark);
+  color: var(--cream-light);
+}
+
+/* Honeypot komplett verstecken */
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* --- Fehlermeldung ------------------------------------------------ */
+
+.form-error {
+  color: #FFCBC0;
+  background: rgba(201, 83, 59, 0.15);
+  border: 1px solid rgba(201, 83, 59, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 6px 0 16px;
+  animation: errorIn 0.25s var(--ease);
+}
+
+@keyframes errorIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Submit-Button ------------------------------------------------ */
+
+.btn-submit {
+  position: relative;
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px 20px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--slate-dark);
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease), box-shadow 0.25s var(--ease), filter 0.2s var(--ease);
+  box-shadow: 0 6px 20px rgba(191, 133, 59, 0.25);
+  overflow: hidden;
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(191, 133, 59, 0.4);
+  filter: brightness(1.05);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-submit:focus-visible {
+  outline: 2px solid var(--cream-light);
+  outline-offset: 3px;
+}
+
+.btn-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.btn-submit__spinner {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid rgba(42, 49, 56, 0.25);
+  border-top-color: var(--slate-dark);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.form.is-submitting .btn-submit__label { opacity: 0; }
+.form.is-submitting .btn-submit__spinner { display: block; }
+.form.is-submitting input,
+.form.is-submitting select,
+.form.is-submitting button { pointer-events: none; }
+
+/* --- Form-Footer -------------------------------------------------- */
+
+.form-foot {
+  text-align: center;
+  color: rgba(253, 250, 243, 0.4);
+  font-size: 12px;
+  margin: 20px 0 0;
+  letter-spacing: 0.3px;
+}
+
+/* --- Success Panel ----------------------------------------------- */
+
+.success {
+  text-align: center;
+  padding: 24px 8px 8px;
+  animation: successIn 0.5s var(--ease);
+}
+
+@keyframes successIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.success__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  color: var(--gold);
+  background: rgba(191, 133, 59, 0.12);
+  border: 1px solid rgba(191, 133, 59, 0.35);
+  margin-bottom: 22px;
+}
+
+.success__title {
+  color: var(--cream-light);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  margin: 0 0 14px;
+}
+
+.success__text {
+  color: rgba(253, 250, 243, 0.78);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0 0 10px;
+}
+
+.success__text--muted {
+  color: rgba(253, 250, 243, 0.5);
+  font-size: 13px;
+  margin-top: 18px;
+}
+
+/* --- Responsive --------------------------------------------------- */
+
+@media (max-width: 520px) {
+  .card {
+    padding: 32px 24px 28px;
+    border-radius: 12px;
+  }
+  .headline { font-size: 26px; }
+  .event-line { font-size: 13px; }
+  .logo { font-size: 20px; }
+}
+
+/* --- Reduced Motion ---------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .btn-submit__spinner { animation: spin 1.4s linear infinite; }
+}
