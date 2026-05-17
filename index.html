@@ -23,11 +23,12 @@
     <section class="card" role="region" aria-label="Anmeldung">
 
       <header class="card__header">
-        <div class="logo">
-          <span class="logo__gold">Jäggi</span>
-          <span class="logo__slate">Vollmer</span>
+        <div class="logo-mark" aria-label="Jäggi Vollmer">
+          <span class="logo-mark__title">
+            <span class="logo-mark__gold">Jäggi</span><span class="logo-mark__silver">&nbsp;Vollmer</span>
+          </span>
+          <span class="logo-mark__sub">Spenglerei &nbsp;|&nbsp; Sanitär &nbsp;|&nbsp; Planung</span>
         </div>
-        <div class="logo__sub">Spenglerei &middot; Sanitär &middot; Planung</div>
       </header>
 
       <div class="hero-text">
@@ -40,7 +41,40 @@
         </p>
       </div>
 
-      <form id="anmeldung-form" class="form" novalidate>
+      <div id="intent-step" class="intent">
+        <p class="intent__question">Können Sie teilnehmen?</p>
+        <div class="intent__buttons">
+          <button type="button" class="intent-btn intent-btn--yes" data-intent="angemeldet">
+            <span class="intent-btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            <span>Ja, ich nehme teil</span>
+          </button>
+          <button type="button" class="intent-btn intent-btn--no" data-intent="abgemeldet">
+            <span class="intent-btn__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </span>
+            <span>Nein, leider nicht</span>
+          </button>
+        </div>
+      </div>
+
+      <form id="anmeldung-form" class="form" novalidate hidden>
+
+        <div class="form__header">
+          <button type="button" id="back-btn" class="back-btn" aria-label="Zurück">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span>Zurück</span>
+          </button>
+          <div id="form-mode" class="form__mode">Zusage</div>
+        </div>
 
         <div class="field">
           <label for="vorname">Vorname</label>
@@ -57,7 +91,7 @@
           <input type="email" id="email" name="email" required autocomplete="email" maxlength="200" inputmode="email">
         </div>
 
-        <div class="field">
+        <div class="field" id="begleit-field">
           <label for="anzahl_begleitpersonen">Begleitpersonen</label>
           <select id="anzahl_begleitpersonen" name="anzahl_begleitpersonen">
             <option value="0">Keine Begleitperson</option>
@@ -79,10 +113,12 @@
           <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
         </div>
 
+        <input type="hidden" id="status" name="status" value="angemeldet">
+
         <div id="form-error" class="form-error" role="alert" hidden></div>
 
         <button type="submit" id="submit-btn" class="btn-submit">
-          <span class="btn-submit__label">Jetzt anmelden</span>
+          <span class="btn-submit__label">Zusage senden</span>
           <span class="btn-submit__spinner" aria-hidden="true"></span>
         </button>
 
@@ -91,12 +127,15 @@
 
       <div id="success-panel" class="success" hidden role="status" aria-live="polite">
         <div class="success__icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg id="success-icon-yes" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
+          <svg id="success-icon-no" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" hidden>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
         </div>
-        <h2 class="success__title">Vielen Dank!</h2>
-        <p class="success__text">
+        <h2 id="success-title" class="success__title">Vielen Dank!</h2>
+        <p id="success-text" class="success__text">
           Ihre Anmeldung ist eingegangen. Eine Bestätigung wurde an Ihre E-Mail-Adresse versendet.
         </p>
         <p class="success__text success__text--muted">

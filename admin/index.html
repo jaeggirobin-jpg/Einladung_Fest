@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Admin – Anmeldungen Geschäftsübergabe</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <main class="shell">
+
+    <div id="login" class="login">
+      <div class="login__card">
+        <div class="login__logo">
+          <span class="login__logo-gold">Jäggi</span><span class="login__logo-silver">&nbsp;Vollmer</span>
+        </div>
+        <p class="login__title">Admin-Zugang</p>
+        <form id="login-form" class="login__form">
+          <input type="password" id="password" placeholder="Passwort" autocomplete="current-password" autofocus>
+          <button type="submit" id="login-btn" class="btn-primary">Anmelden</button>
+        </form>
+        <p id="login-error" class="login__error" hidden></p>
+      </div>
+    </div>
+
+    <div id="dashboard" class="dashboard" hidden>
+
+      <header class="topbar">
+        <div class="topbar__left">
+          <div class="topbar__logo">
+            <span class="topbar__logo-gold">Jäggi</span><span class="topbar__logo-silver">&nbsp;Vollmer</span>
+          </div>
+          <div class="topbar__title">Anmeldungen Geschäftsübergabe</div>
+        </div>
+        <div class="topbar__right">
+          <button type="button" id="refresh-btn" class="btn-ghost" title="Daten neu laden">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Aktualisieren
+          </button>
+          <button type="button" id="csv-btn" class="btn-ghost" title="Als CSV exportieren">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            CSV
+          </button>
+          <button type="button" id="logout-btn" class="btn-ghost btn-ghost--danger" title="Abmelden">
+            Abmelden
+          </button>
+        </div>
+      </header>
+
+      <section class="stats">
+        <div class="stat stat--ok">
+          <div class="stat__label">Zugesagt</div>
+          <div class="stat__value" id="stat-ja">–</div>
+        </div>
+        <div class="stat stat--nope">
+          <div class="stat__label">Abgesagt</div>
+          <div class="stat__value" id="stat-nein">–</div>
+        </div>
+        <div class="stat stat--total">
+          <div class="stat__label">Personen total <span class="stat__hint">(inkl. Begleitung)</span></div>
+          <div class="stat__value" id="stat-personen">–</div>
+        </div>
+      </section>
+
+      <section class="toolbar">
+        <div class="toolbar__filters" role="tablist">
+          <button type="button" class="filter-btn is-active" data-filter="alle">Alle</button>
+          <button type="button" class="filter-btn" data-filter="angemeldet">Zugesagt</button>
+          <button type="button" class="filter-btn" data-filter="abgemeldet">Abgesagt</button>
+        </div>
+        <div class="toolbar__search">
+          <input type="search" id="search-input" placeholder="Suche nach Name oder E-Mail…">
+        </div>
+      </section>
+
+      <section class="table-wrap">
+        <table class="table" id="table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Name</th>
+              <th>E-Mail</th>
+              <th class="num">Personen</th>
+              <th>Antwort</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="5" class="empty">Lade Daten…</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <p class="foot" id="row-count"></p>
+
+    </div>
+
+  </main>
+
+  <script type="module" src="admin.js"></script>
+</body>
+</html>

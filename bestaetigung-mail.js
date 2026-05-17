@@ -75,10 +75,10 @@ export function bestaetigungHtml({ vorname, begleit }) {
 
         <tr>
           <td style="background-color:#E5D5B0; padding:28px 40px;">
-            <div style="font-size:22px; font-weight:700; line-height:1; letter-spacing:-0.3px;">
-              <span style="color:#BF853B;">Jäggi</span> <span style="color:#5A6670;">Vollmer</span>
+            <div style="font-size:28px; font-weight:700; line-height:1; letter-spacing:-0.5px;">
+              <span style="color:#BF853B;">Jäggi</span> <span style="color:#8A8E94;">Vollmer</span>
             </div>
-            <div style="color:#5A6670; font-size:11px; margin-top:8px; letter-spacing:2px;">Spenglerei &nbsp;·&nbsp; Sanitär &nbsp;·&nbsp; Planung</div>
+            <div style="color:#5A6670; font-size:12px; margin-top:10px; letter-spacing:1.5px; font-weight:400;">Spenglerei &nbsp;|&nbsp; Sanitär &nbsp;|&nbsp; Planung</div>
           </td>
         </tr>
 
