@@ -99,32 +99,22 @@ body::after {
 /* --- Header / Logo ------------------------------------------------ */
 
 .card__header {
+  background: #E5D5B0;
+  padding: 22px 28px;
+  border-radius: 10px;
+  margin-bottom: 32px;
   text-align: center;
-  margin-bottom: 28px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 18px rgba(0, 0, 0, 0.18);
 }
 
-.logo-mark {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1;
-}
-
-.logo-mark__title {
-  font-size: 32px;
-  font-weight: 700;
-  letter-spacing: -1px;
-  line-height: 1;
-}
-.logo-mark__gold   { color: var(--gold); }
-.logo-mark__silver { color: #B5BAC0; }
-
-.logo-mark__sub {
-  color: rgba(253, 250, 243, 0.55);
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  margin-top: 12px;
-  font-weight: 400;
+.logo-img {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  margin: 0 auto;
 }
 
 /* --- Hero-Text ---------------------------------------------------- */

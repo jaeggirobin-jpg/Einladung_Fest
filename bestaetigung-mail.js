@@ -74,11 +74,8 @@ export function bestaetigungHtml({ vorname, begleit }) {
         <tr><td style="background-color:#C9A877; height:3px; line-height:3px; font-size:0;">&nbsp;</td></tr>
 
         <tr>
-          <td style="background-color:#E5D5B0; padding:28px 40px;">
-            <div style="font-size:28px; font-weight:700; line-height:1; letter-spacing:-0.5px;">
-              <span style="color:#BF853B;">Jäggi</span> <span style="color:#8A8E94;">Vollmer</span>
-            </div>
-            <div style="color:#5A6670; font-size:12px; margin-top:10px; letter-spacing:1.5px; font-weight:400;">Spenglerei &nbsp;|&nbsp; Sanitär &nbsp;|&nbsp; Planung</div>
+          <td style="background-color:#E5D5B0; padding:26px 40px;" align="left">
+            <img src="https://einladung.jaeggivollmer.ch/assets/logo.png" alt="Jäggi Vollmer – Spenglerei, Sanitär, Planung" width="260" style="display:block; width:260px; max-width:100%; height:auto; border:0; outline:none;">
           </td>
         </tr>
 

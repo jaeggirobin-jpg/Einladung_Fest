@@ -57,13 +57,12 @@ html, body {
 }
 
 .login__logo {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  line-height: 1;
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  margin: 0 auto;
 }
-.login__logo-gold   { color: var(--gold); }
-.login__logo-silver { color: #8A8E94; }
 
 .login__title {
   font-size: 13px;
@@ -157,13 +156,10 @@ html, body {
 .topbar__left { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 
 .topbar__logo {
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-  line-height: 1;
+  display: block;
+  width: auto;
+  height: 32px;
 }
-.topbar__logo-gold   { color: var(--gold); }
-.topbar__logo-silver { color: #8A8E94; }
 
 .topbar__title {
   font-size: 14px;
