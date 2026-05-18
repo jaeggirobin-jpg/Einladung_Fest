@@ -21,6 +21,12 @@ const statJa       = document.getElementById('stat-ja');
 const statNein     = document.getElementById('stat-nein');
 const statPersonen = document.getElementById('stat-personen');
 
+const modal        = document.getElementById('confirm-modal');
+const confirmText  = document.getElementById('confirm-text');
+const confirmBtn   = document.getElementById('confirm-delete-btn');
+
+let pendingDeleteId = null;
+
 let allRows = [];
 let activeFilter = 'alle';
 let searchQuery = '';
@@ -70,6 +76,71 @@ searchInput.addEventListener('input', () => {
   searchQuery = searchInput.value.trim().toLowerCase();
   render();
 });
+
+tbody.addEventListener('click', (e) => {
+  const btn = e.target.closest('.js-delete');
+  if (!btn) return;
+  const tr = btn.closest('tr');
+  const id = tr?.dataset.id;
+  if (!id) return;
+  openDeleteModal(id);
+});
+
+modal.addEventListener('click', (e) => {
+  if (e.target.dataset.close) closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !modal.hidden) closeModal();
+});
+
+confirmBtn.addEventListener('click', async () => {
+  if (!pendingDeleteId) return closeModal();
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = 'Lösche…';
+  try {
+    await deleteRow(pendingDeleteId);
+    closeModal();
+    await loadAndRender();
+  } catch (err) {
+    alert(err.message || 'Löschen fehlgeschlagen.');
+  } finally {
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Ja, löschen';
+  }
+});
+
+function openDeleteModal(id) {
+  const row = allRows.find(r => r.id === id);
+  pendingDeleteId = id;
+  if (row) {
+    confirmText.innerHTML = `Möchten Sie den Eintrag von <strong>${esc(row.vorname)} ${esc(row.nachname)}</strong> wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`;
+  } else {
+    confirmText.textContent = 'Möchten Sie diesen Eintrag wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.';
+  }
+  modal.hidden = false;
+}
+
+function closeModal() {
+  modal.hidden = true;
+  pendingDeleteId = null;
+}
+
+async function deleteRow(id) {
+  const token = sessionStorage.getItem(STORAGE_KEY);
+  const res = await fetch('/.netlify/functions/admin-delete', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id })
+  });
+  if (!res.ok) {
+    const out = await res.json().catch(() => ({}));
+    throw new Error(out.error || `Fehler ${res.status}`);
+  }
+}
 
 /* --- Data ---------------------------------------------------------- */
 
@@ -135,7 +206,7 @@ function render() {
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty">Keine Einträge.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty">Keine Einträge.</td></tr>`;
   } else {
     tbody.innerHTML = filtered.map(rowHtml).join('');
   }
@@ -149,12 +220,22 @@ function rowHtml(r) {
     : `<span class="status-badge status-badge--no"><span class="status-badge__dot"></span>Abgesagt</span>`;
   const personen = isJa ? 1 + (r.anzahl_begleitpersonen || 0) : 0;
   return `
-    <tr>
+    <tr data-id="${esc(r.id)}">
       <td>${badge}</td>
       <td><strong>${esc(r.vorname)}</strong> ${esc(r.nachname)}</td>
       <td>${esc(r.email)}</td>
       <td class="num">${isJa ? personen : '–'}</td>
       <td>${formatDate(r.updated_at || r.created_at)}</td>
+      <td>
+        <button type="button" class="delete-btn js-delete" title="Eintrag löschen" aria-label="Eintrag löschen">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+            <path d="M10 11v6M14 11v6"></path>
+            <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+      </td>
     </tr>
   `;
 }
