@@ -4,12 +4,10 @@
 
 const intentStep   = document.getElementById('intent-step');
 const form         = document.getElementById('anmeldung-form');
-const formMode     = document.getElementById('form-mode');
 const submitLabel  = document.querySelector('.btn-submit__label');
 const begleitField = document.getElementById('begleit-field');
 const statusInput  = document.getElementById('status');
 const btn          = document.getElementById('submit-btn');
-const backBtn      = document.getElementById('back-btn');
 const errorBox     = document.getElementById('form-error');
 const successPanel = document.getElementById('success-panel');
 const successTitle = document.getElementById('success-title');
@@ -23,18 +21,10 @@ document.querySelectorAll('.intent-btn').forEach(b => {
   b.addEventListener('click', () => selectIntent(b.dataset.intent));
 });
 
-backBtn.addEventListener('click', () => {
-  form.hidden = true;
-  hideError();
-  intentStep.hidden = false;
-  intentStep.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-});
-
 function selectIntent(intent) {
   const isDecline = intent === 'abgemeldet';
   statusInput.value = intent;
   form.classList.toggle('is-decline', isDecline);
-  formMode.textContent = isDecline ? 'Absage' : 'Zusage';
   submitLabel.textContent = isDecline ? 'Absage senden' : 'Zusage senden';
   if (isDecline) form.anzahl_begleitpersonen.value = '0';
 
