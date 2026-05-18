@@ -39,24 +39,44 @@ body {
   overflow-x: hidden;
 }
 
-/* --- 3D Hero Canvas ----------------------------------------------- */
+/* --- Hintergrund: gekacheltes Logo mit langsamem Drift ------------ */
 
-#hero-canvas {
+.pattern-bg {
   position: fixed;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
   z-index: 0;
+  overflow: hidden;
   pointer-events: none;
+  background-color: var(--slate-dark);
 }
 
-/* Subtiler Vignetten-Overlay über dem Canvas */
+.pattern-bg__layer {
+  position: absolute;
+  inset: -10vh -10vw;
+  background-image: url('../assets/logo.png');
+  background-size: 340px auto;
+  background-repeat: repeat;
+  background-position: 0 0;
+  opacity: 0.07;
+  animation: pattern-drift 140s linear infinite;
+  will-change: background-position;
+}
+
+@keyframes pattern-drift {
+  from { background-position: 0 0; }
+  to   { background-position: -680px -206px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pattern-bg__layer { animation: none; }
+}
+
+/* Vignette über dem Pattern – konzentriert Aufmerksamkeit auf die Karte */
 body::after {
   content: '';
   position: fixed;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.45) 100%);
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.55) 100%);
   pointer-events: none;
   z-index: 1;
 }
