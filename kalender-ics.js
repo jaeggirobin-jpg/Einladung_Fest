@@ -14,9 +14,14 @@ const EVENT = {
   tzid:       'Europe/Zurich',
   summary:    'Geschäftsübergabe Jäggi Vollmer GmbH',
   location:   'Horburgstrasse 96, 4057 Basel',
-  description:
-    'Wir freuen uns, Sie an der Geschäftsübergabe der Jäggi Vollmer GmbH ' +
-    'begrüssen zu dürfen. Beginn ab 17:00 Uhr.'
+  description: [
+    'Programm:',
+    '17:00  Empfang',
+    '18:30  Geschäftsübergabe',
+    'Anschliessend Apéro, Abendessen und gemütlicher Ausklang',
+    '',
+    'Wir freuen uns auf Sie!'
+  ].join('\n')
 };
 
 export function kalenderIcs() {
