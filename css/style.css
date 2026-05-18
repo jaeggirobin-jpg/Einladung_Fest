@@ -99,25 +99,22 @@ body::after {
 /* --- Header / Logo ------------------------------------------------ */
 
 .card__header {
+  background: #E5D5B0;
+  padding: 22px 28px;
+  border-radius: 10px;
+  margin-bottom: 32px;
   text-align: center;
-  margin-bottom: 28px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 4px 18px rgba(0, 0, 0, 0.18);
 }
 
-.logo {
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  line-height: 1;
-}
-.logo__gold  { color: var(--gold); }
-.logo__slate { color: var(--cream); }
-
-.logo__sub {
-  color: rgba(253, 250, 243, 0.55);
-  font-size: 10px;
-  letter-spacing: 2.5px;
-  margin-top: 10px;
-  text-transform: uppercase;
+.logo-img {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+  margin: 0 auto;
 }
 
 /* --- Hero-Text ---------------------------------------------------- */
@@ -158,9 +155,96 @@ body::after {
   margin: 0;
 }
 
+/* --- Intent-Step (Ja/Nein-Auswahl) ------------------------------- */
+
+.intent {
+  animation: cardIn 0.5s var(--ease) both;
+}
+
+.intent__question {
+  text-align: center;
+  color: rgba(253, 250, 243, 0.85);
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 18px;
+  letter-spacing: 0.3px;
+}
+
+.intent__buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 420px) {
+  .intent__buttons { grid-template-columns: 1fr; }
+}
+
+.intent-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 18px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(253, 250, 243, 0.18);
+  border-radius: var(--radius-sm);
+  color: var(--cream-light);
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  text-align: center;
+}
+
+.intent-btn:hover {
+  background: rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
+}
+
+.intent-btn:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.intent-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(253, 250, 243, 0.08);
+}
+
+.intent-btn--yes {
+  border-color: rgba(191, 133, 59, 0.5);
+  background: linear-gradient(135deg, rgba(191, 133, 59, 0.15) 0%, rgba(201, 168, 119, 0.1) 100%);
+}
+.intent-btn--yes:hover {
+  border-color: var(--gold);
+  background: linear-gradient(135deg, rgba(191, 133, 59, 0.28) 0%, rgba(201, 168, 119, 0.18) 100%);
+  box-shadow: 0 8px 22px rgba(191, 133, 59, 0.18);
+}
+.intent-btn--yes .intent-btn__icon {
+  background: rgba(191, 133, 59, 0.25);
+  color: var(--gold-light);
+}
+
+.intent-btn--no .intent-btn__icon {
+  color: rgba(253, 250, 243, 0.6);
+}
+
 /* --- Form --------------------------------------------------------- */
 
-.form { display: block; }
+.form { display: block; animation: cardIn 0.4s var(--ease); }
+
+/* Begleitfeld bei Absage ausblenden */
+.form.is-decline #begleit-field { display: none; }
 
 .field { margin-bottom: 16px; }
 
@@ -342,6 +426,12 @@ body::after {
   background: rgba(191, 133, 59, 0.12);
   border: 1px solid rgba(191, 133, 59, 0.35);
   margin-bottom: 22px;
+}
+
+.success.is-decline .success__icon {
+  color: rgba(253, 250, 243, 0.7);
+  background: rgba(253, 250, 243, 0.06);
+  border-color: rgba(253, 250, 243, 0.18);
 }
 
 .success__title {

@@ -6,6 +6,8 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
     return resp(405, { error: 'Methode nicht erlaubt' });
@@ -25,43 +27,53 @@ export async function handler(event) {
   const vorname  = String(data.vorname  || '').trim().slice(0, 100);
   const nachname = String(data.nachname || '').trim().slice(0, 100);
   const email    = String(data.email    || '').trim().toLowerCase().slice(0, 200);
+  const status   = data.status === 'abgemeldet' ? 'abgemeldet' : 'angemeldet';
+
   let begleit = parseInt(data.anzahl_begleitpersonen, 10);
   if (isNaN(begleit) || begleit < 0) begleit = 0;
   if (begleit > 10) begleit = 10;
+  if (status === 'abgemeldet') begleit = 0;
 
   if (!vorname || !nachname || !email) {
     return resp(400, { error: 'Bitte alle Pflichtfelder ausfüllen.' });
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!EMAIL_RE.test(email)) {
     return resp(400, { error: 'Bitte eine gültige E-Mail-Adresse angeben.' });
   }
 
-  const { error } = await supabase
+  const { error: upsertError } = await supabase
     .from('anmeldungen')
-    .insert({ vorname, nachname, email, anzahl_begleitpersonen: begleit });
+    .upsert(
+      {
+        vorname,
+        nachname,
+        email,
+        anzahl_begleitpersonen: begleit,
+        status,
+        bestaetigung_gesendet: false
+      },
+      { onConflict: 'email' }
+    );
 
-  if (error) {
-    if (error.code === '23505') {
-      return resp(409, {
-        error: 'Mit dieser E-Mail-Adresse besteht bereits eine Anmeldung.'
-      });
-    }
-    console.error('Supabase insert error:', error);
+  if (upsertError) {
+    console.error('Supabase upsert error:', upsertError);
     return resp(500, {
       error: 'Speichern fehlgeschlagen. Bitte später erneut versuchen.'
     });
   }
 
-  try {
-    await sendBestaetigung({ vorname, email, begleit });
-    await supabase.from('anmeldungen')
-      .update({ bestaetigung_gesendet: true })
-      .eq('email', email);
-  } catch (e) {
-    console.error('Mailversand fehlgeschlagen:', e);
+  if (status === 'angemeldet') {
+    try {
+      await sendBestaetigung({ vorname, email, begleit });
+      await supabase.from('anmeldungen')
+        .update({ bestaetigung_gesendet: true })
+        .eq('email', email);
+    } catch (e) {
+      console.error('Mailversand fehlgeschlagen:', e);
+    }
   }
 
-  return resp(200, { ok: true });
+  return resp(200, { ok: true, status });
 }
 
 async function sendBestaetigung({ vorname, email, begleit }) {
