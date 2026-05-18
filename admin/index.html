@@ -93,10 +93,11 @@
               <th>E-Mail</th>
               <th class="num">Personen</th>
               <th>Antwort</th>
+              <th class="action-col"></th>
             </tr>
           </thead>
           <tbody id="tbody">
-            <tr><td colspan="5" class="empty">Lade Daten…</td></tr>
+            <tr><td colspan="6" class="empty">Lade Daten…</td></tr>
           </tbody>
         </table>
       </section>
@@ -106,6 +107,21 @@
     </div>
 
   </main>
+
+  <div id="confirm-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal__backdrop" data-close="1"></div>
+    <div class="modal__card">
+      <h3 id="confirm-title" class="modal__title">Eintrag löschen?</h3>
+      <p id="confirm-text" class="modal__text">
+        Möchten Sie diesen Eintrag wirklich löschen?
+        Diese Aktion kann nicht rückgängig gemacht werden.
+      </p>
+      <div class="modal__buttons">
+        <button type="button" class="btn-ghost" data-close="1">Abbrechen</button>
+        <button type="button" id="confirm-delete-btn" class="btn-danger">Ja, löschen</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="admin.js"></script>
 </body>

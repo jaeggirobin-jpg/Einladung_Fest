@@ -3,17 +3,10 @@
  * ------------------------------------------------------------
  * Erzeugt das HTML der Bestätigungsmail, die nach einer
  * erfolgreichen Anmeldung automatisch versendet wird.
- *
- * Verwendung in netlify/functions/submit-rsvp.js:
- *
- *   import { bestaetigungHtml } from './bestaetigung-mail.js';
- *   ...
- *   html: bestaetigungHtml({ vorname, begleit })
- *
- * Alternativ kann die Funktion auch direkt in submit-rsvp.js
- * eingefügt werden – dann den import-Befehl weglassen.
  * ------------------------------------------------------------
  */
+
+import { mailLogoSrc } from './mail-logo.js';
 
 export function bestaetigungHtml({ vorname, begleit }) {
 
@@ -73,8 +66,8 @@ export function bestaetigungHtml({ vorname, begleit }) {
         <tr><td style="background-color:#C9A877; height:3px; line-height:3px; font-size:0;">&nbsp;</td></tr>
 
         <tr>
-          <td style="background-color:#E5D5B0; padding:26px 40px;" align="left">
-            <img src="https://einladung.jaeggivollmer.ch/assets/logo.png" alt="Jäggi Vollmer – Spenglerei, Sanitär, Planung" width="260" style="display:block; width:260px; max-width:100%; height:auto; border:0; outline:none;">
+          <td style="background-color:#FFFFFF; padding:26px 40px;" align="left">
+            <img src="${mailLogoSrc}" alt="Jäggi Vollmer – Spenglerei, Sanitär, Planung" width="260" style="display:block; width:260px; max-width:100%; height:auto; border:0; outline:none;">
           </td>
         </tr>
 
@@ -100,11 +93,25 @@ export function bestaetigungHtml({ vorname, begleit }) {
           <td class="px" style="background-color:#FDFAF3; padding:24px 40px 32px;">
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr>
-                <td style="background-color:#F5EEDC; padding:32px 24px; border-left:3px solid #BF853B;" align="center">
+                <td style="background-color:#F5EEDC; padding:30px 24px 28px; border-left:3px solid #BF853B;" align="center">
                   <div style="color:#BF853B; font-size:11px; font-weight:500; letter-spacing:4px; margin-bottom:12px;">MONTAG</div>
                   <div style="color:#4B575D; font-size:32px; font-weight:500; line-height:1; letter-spacing:-0.5px;">31. August 2026</div>
-                  <div style="color:#7A858D; font-size:15px; margin-top:10px;">ab 17:00 Uhr &middot; Übergabe um 18:30 Uhr</div>
                   <div style="width:32px; height:1px; background-color:#C9A877; margin:20px auto; font-size:0; line-height:0;">&nbsp;</div>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                    <tr>
+                      <td style="color:#BF853B; font-size:15px; font-weight:700; padding:3px 14px 3px 0; white-space:nowrap;" valign="top">17:00</td>
+                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Start/Empfang/Essen</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#BF853B; font-size:15px; font-weight:700; padding:3px 14px 3px 0; white-space:nowrap;" valign="top">18:30</td>
+                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Übergabe</td>
+                    </tr>
+                    <tr>
+                      <td style="color:#BF853B; font-size:15px; font-weight:700; padding:3px 14px 3px 0; white-space:nowrap;" valign="top">danach</td>
+                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Essen/Ausklang</td>
+                    </tr>
+                  </table>
+                  <div style="width:32px; height:1px; background-color:#C9A877; margin:22px auto 18px; font-size:0; line-height:0;">&nbsp;</div>
                   <div style="color:#4B575D; font-size:15px; line-height:1.6;">Horburgstrasse 96<br>4057 Basel</div>
                 </td>
               </tr>

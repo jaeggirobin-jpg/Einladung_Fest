@@ -347,6 +347,106 @@ html, body {
   font-style: italic;
 }
 
+.action-col { width: 44px; }
+
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.delete-btn:hover {
+  color: var(--no);
+  background: var(--no-bg);
+  border-color: rgba(184, 83, 60, 0.3);
+}
+
+/* --- Modal -------------------------------------------------------- */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal[hidden] { display: none; }
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(42, 49, 56, 0.55);
+  backdrop-filter: blur(4px);
+  animation: backdropIn 0.2s ease;
+}
+
+.modal__card {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 28px 28px 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: modalIn 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--slate-dark);
+  margin: 0 0 10px;
+}
+
+.modal__text {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.modal__text strong {
+  color: var(--slate-dark);
+  font-weight: 700;
+}
+
+.modal__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-danger {
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  color: #fff;
+  background: var(--no);
+  border: 1px solid var(--no);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.btn-danger:hover { filter: brightness(1.08); transform: translateY(-1px); }
+
+@keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1); }
+}
+
 .foot {
   text-align: center;
   color: var(--text-muted);
