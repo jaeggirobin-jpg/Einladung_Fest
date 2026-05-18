@@ -28,9 +28,12 @@ function selectIntent(intent) {
   submitLabel.textContent = isDecline ? 'Absage senden' : 'Zusage senden';
   if (isDecline) form.anzahl_begleitpersonen.value = '0';
 
-  intentStep.hidden = true;
-  form.hidden = false;
-  form.vorname.focus();
+  document.querySelectorAll('.intent-btn').forEach(b => {
+    b.classList.toggle('is-selected', b.dataset.intent === intent);
+  });
+
+  btn.disabled = false;
+  hideError();
 }
 
 form.addEventListener('submit', async (e) => {

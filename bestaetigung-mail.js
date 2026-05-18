@@ -17,25 +17,24 @@
 
 export function bestaetigungHtml({ vorname, begleit }) {
 
-  // --- Eingaben absichern ---
-  const v = String(vorname || '').replace(/[<>&]/g, '').trim();
-  const anrede = v ? `Guten Tag ${v}` : 'Guten Tag';
+  const anrede = 'Guten Tag';
 
   let b = parseInt(begleit, 10);
   if (isNaN(b) || b < 0) b = 0;
   const total = 1 + b;
 
   // --- Personenzahl-Text ---
+  const HL = (n, w) => `<span style="font-weight:700; color:#BF853B;">${n}&nbsp;${w}</span>`;
   let personenText;
   if (b === 0) {
     personenText =
-      'Ihre Anmeldung ist für <span style="font-weight:500;">1 Person</span> notiert.';
+      `Ihre Anmeldung ist für ${HL(1, 'Person')} notiert.`;
   } else if (b === 1) {
     personenText =
-      'Ihre Anmeldung ist für <span style="font-weight:500;">2 Personen</span> notiert – Sie und 1 Begleitperson.';
+      `Ihre Anmeldung ist für ${HL(2, 'Personen')} notiert – Sie und ${HL(1, 'Begleitperson')}.`;
   } else {
     personenText =
-      `Ihre Anmeldung ist für <span style="font-weight:500;">${total} Personen</span> notiert – Sie und ${b} Begleitpersonen.`;
+      `Ihre Anmeldung ist für ${HL(total, 'Personen')} notiert – Sie und ${HL(b, 'Begleitpersonen')}.`;
   }
 
   // --- HTML der E-Mail ---

@@ -61,7 +61,7 @@
         </div>
       </div>
 
-      <form id="anmeldung-form" class="form" novalidate hidden>
+      <form id="anmeldung-form" class="form" novalidate>
 
         <div class="field">
           <label for="vorname">Vorname</label>
@@ -104,12 +104,10 @@
 
         <div id="form-error" class="form-error" role="alert" hidden></div>
 
-        <button type="submit" id="submit-btn" class="btn-submit">
-          <span class="btn-submit__label">Zusage senden</span>
+        <button type="submit" id="submit-btn" class="btn-submit" disabled>
+          <span class="btn-submit__label">Bitte oben Zu- oder Absage wählen</span>
           <span class="btn-submit__spinner" aria-hidden="true"></span>
         </button>
-
-        <p class="form-foot">Anmeldeschluss: 1. August 2026</p>
       </form>
 
       <div id="success-panel" class="success" hidden role="status" aria-live="polite">
