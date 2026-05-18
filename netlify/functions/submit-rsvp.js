@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { bestaetigungHtml } from '../../bestaetigung-mail.js';
+import { kalenderIcs }      from '../../kalender-ics.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -77,6 +78,8 @@ export async function handler(event) {
 }
 
 async function sendBestaetigung({ vorname, email, begleit }) {
+  const icsBase64 = Buffer.from(kalenderIcs(), 'utf8').toString('base64');
+
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -88,7 +91,14 @@ async function sendBestaetigung({ vorname, email, begleit }) {
       reply_to: 'info@jaeggivollmer.ch',
       to: [email],
       subject: 'Anmeldung bestätigt – Geschäftsübergabe Jäggi Vollmer',
-      html: bestaetigungHtml({ vorname, begleit })
+      html: bestaetigungHtml({ vorname, begleit }),
+      attachments: [
+        {
+          filename: 'geschaeftsuebergabe-jaeggi-vollmer.ics',
+          content: icsBase64,
+          content_type: 'text/calendar; charset=utf-8; method=PUBLISH'
+        }
+      ]
     })
   });
   if (!r.ok) {
