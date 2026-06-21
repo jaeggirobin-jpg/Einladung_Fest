@@ -19,8 +19,8 @@ export async function handler(event) {
 
   const { data, error } = await supabase
     .from('anmeldungen')
-    .select('id, created_at, updated_at, vorname, nachname, email, anzahl_begleitpersonen, status, bestaetigung_gesendet')
-    .order('updated_at', { ascending: false });
+    .select('id, created_at, updated_at, vorname, nachname, email, anzahl_begleitpersonen, max_begleitpersonen, status, bestaetigung_gesendet')
+    .order('nachname', { ascending: true });
 
   if (error) {
     console.error('Supabase select error:', error);
@@ -28,6 +28,7 @@ export async function handler(event) {
   }
 
   const stats = {
+    offen:       data.filter(r => r.status === 'offen').length,
     angemeldet:  data.filter(r => r.status === 'angemeldet').length,
     abgemeldet:  data.filter(r => r.status === 'abgemeldet').length,
     personen_total: data

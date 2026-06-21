@@ -59,6 +59,10 @@
       </header>
 
       <section class="stats">
+        <div class="stat stat--neutral">
+          <div class="stat__label">Offen</div>
+          <div class="stat__value" id="stat-offen">–</div>
+        </div>
         <div class="stat stat--ok">
           <div class="stat__label">Zugesagt</div>
           <div class="stat__value" id="stat-ja">–</div>
@@ -76,11 +80,19 @@
       <section class="toolbar">
         <div class="toolbar__filters" role="tablist">
           <button type="button" class="filter-btn is-active" data-filter="alle">Alle</button>
+          <button type="button" class="filter-btn" data-filter="offen">Offen</button>
           <button type="button" class="filter-btn" data-filter="angemeldet">Zugesagt</button>
           <button type="button" class="filter-btn" data-filter="abgemeldet">Abgesagt</button>
         </div>
-        <div class="toolbar__search">
-          <input type="search" id="search-input" placeholder="Suche nach Name oder E-Mail…">
+        <div class="toolbar__actions">
+          <input type="search" id="search-input" placeholder="Suche…">
+          <button type="button" id="add-guest-btn" class="btn-primary btn-primary--sm">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Gast hinzufügen
+          </button>
         </div>
       </section>
 
@@ -91,13 +103,14 @@
               <th>Status</th>
               <th>Name</th>
               <th>E-Mail</th>
+              <th class="num" title="Maximal erlaubte Begleitpersonen">Max BP</th>
               <th class="num">Personen</th>
               <th>Antwort</th>
               <th class="action-col"></th>
             </tr>
           </thead>
           <tbody id="tbody">
-            <tr><td colspan="6" class="empty">Lade Daten…</td></tr>
+            <tr><td colspan="7" class="empty">Lade Daten…</td></tr>
           </tbody>
         </table>
       </section>
@@ -121,6 +134,55 @@
         <button type="button" id="confirm-delete-btn" class="btn-danger">Ja, löschen</button>
       </div>
     </div>
+  </div>
+
+  <div id="guest-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="guest-modal-title">
+    <div class="modal__backdrop" data-close="1"></div>
+    <form class="modal__card" id="guest-form">
+      <h3 id="guest-modal-title" class="modal__title">Gast hinzufügen</h3>
+      <input type="hidden" id="g-id">
+
+      <div class="modal__grid">
+        <div class="modal__field">
+          <label for="g-vorname">Vorname</label>
+          <input type="text" id="g-vorname" required maxlength="100" autocomplete="off">
+        </div>
+        <div class="modal__field">
+          <label for="g-nachname">Nachname</label>
+          <input type="text" id="g-nachname" required maxlength="100" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="modal__field">
+        <label for="g-email">E-Mail</label>
+        <input type="email" id="g-email" required maxlength="200" autocomplete="off">
+      </div>
+
+      <div class="modal__field">
+        <label for="g-max">Maximal erlaubte Begleitpersonen</label>
+        <select id="g-max">
+          <option value="0">0 – keine Begleitperson</option>
+          <option value="1">1 Begleitperson</option>
+          <option value="2">2 Begleitpersonen</option>
+          <option value="3">3 Begleitpersonen</option>
+          <option value="4">4 Begleitpersonen</option>
+          <option value="5">5 Begleitpersonen</option>
+          <option value="6">6 Begleitpersonen</option>
+          <option value="7">7 Begleitpersonen</option>
+          <option value="8">8 Begleitpersonen</option>
+          <option value="9">9 Begleitpersonen</option>
+          <option value="10">10 Begleitpersonen</option>
+        </select>
+        <p class="modal__hint">Steht auf 0, sieht der Gast das Begleitperson-Feld gar nicht.</p>
+      </div>
+
+      <p id="guest-form-error" class="modal__error" hidden></p>
+
+      <div class="modal__buttons">
+        <button type="button" class="btn-ghost" data-close="1">Abbrechen</button>
+        <button type="submit" id="guest-save-btn" class="btn-primary btn-primary--sm">Speichern</button>
+      </div>
+    </form>
   </div>
 
   <script type="module" src="admin.js"></script>

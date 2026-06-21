@@ -177,6 +177,33 @@ body::after {
 
 /* --- Intent-Step (Ja/Nein-Auswahl) ------------------------------- */
 
+/* --- Email-Step --------------------------------------------------- */
+
+.email-step {
+  animation: cardIn 0.4s var(--ease) both;
+}
+
+.step-question {
+  text-align: center;
+  color: rgba(253, 250, 243, 0.85);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 14px;
+  letter-spacing: 0.3px;
+}
+
+.greeting {
+  text-align: center;
+  color: var(--cream-light);
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 18px;
+  letter-spacing: 0.2px;
+}
+.greeting span { color: var(--gold-light); font-weight: 700; }
+
+/* --- Intent ------------------------------------------------------- */
+
 .intent {
   margin-bottom: 16px;
   animation: cardIn 0.5s var(--ease) both;

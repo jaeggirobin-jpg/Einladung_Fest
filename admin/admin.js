@@ -17,6 +17,7 @@ const searchInput = document.getElementById('search-input');
 const tbody       = document.getElementById('tbody');
 const rowCount    = document.getElementById('row-count');
 
+const statOffen    = document.getElementById('stat-offen');
 const statJa       = document.getElementById('stat-ja');
 const statNein     = document.getElementById('stat-nein');
 const statPersonen = document.getElementById('stat-personen');
@@ -24,6 +25,18 @@ const statPersonen = document.getElementById('stat-personen');
 const modal        = document.getElementById('confirm-modal');
 const confirmText  = document.getElementById('confirm-text');
 const confirmBtn   = document.getElementById('confirm-delete-btn');
+
+const addBtn       = document.getElementById('add-guest-btn');
+const guestModal   = document.getElementById('guest-modal');
+const guestForm    = document.getElementById('guest-form');
+const guestTitle   = document.getElementById('guest-modal-title');
+const gId          = document.getElementById('g-id');
+const gVorname     = document.getElementById('g-vorname');
+const gNachname    = document.getElementById('g-nachname');
+const gEmail       = document.getElementById('g-email');
+const gMax         = document.getElementById('g-max');
+const guestSaveBtn = document.getElementById('guest-save-btn');
+const guestFormErr = document.getElementById('guest-form-error');
 
 let pendingDeleteId = null;
 
@@ -78,12 +91,51 @@ searchInput.addEventListener('input', () => {
 });
 
 tbody.addEventListener('click', (e) => {
-  const btn = e.target.closest('.js-delete');
-  if (!btn) return;
-  const tr = btn.closest('tr');
+  const tr = e.target.closest('tr');
   const id = tr?.dataset.id;
   if (!id) return;
-  openDeleteModal(id);
+  if (e.target.closest('.js-delete')) openDeleteModal(id);
+  else if (e.target.closest('.js-edit')) openGuestModal(id);
+});
+
+addBtn.addEventListener('click', () => openGuestModal(null));
+
+guestModal.addEventListener('click', (e) => {
+  if (e.target.dataset.close) closeGuestModal();
+});
+
+guestForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideGuestError();
+  const payload = {
+    id:       gId.value || undefined,
+    vorname:  gVorname.value.trim(),
+    nachname: gNachname.value.trim(),
+    email:    gEmail.value.trim().toLowerCase(),
+    max_begleitpersonen: parseInt(gMax.value, 10) || 0
+  };
+  if (!payload.vorname || !payload.nachname || !payload.email) {
+    return showGuestError('Bitte Vorname, Nachname und E-Mail angeben.');
+  }
+  guestSaveBtn.disabled = true;
+  guestSaveBtn.textContent = 'Speichern…';
+  try {
+    const token = sessionStorage.getItem(STORAGE_KEY);
+    const res = await fetch('/.netlify/functions/admin-guest-write', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) return showGuestError(out.error || `Fehler ${res.status}`);
+    closeGuestModal();
+    await loadAndRender();
+  } catch {
+    showGuestError('Verbindung fehlgeschlagen.');
+  } finally {
+    guestSaveBtn.disabled = false;
+    guestSaveBtn.textContent = 'Speichern';
+  }
 });
 
 modal.addEventListener('click', (e) => {
@@ -91,7 +143,9 @@ modal.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !modal.hidden) closeModal();
+  if (e.key !== 'Escape') return;
+  if (!modal.hidden) closeModal();
+  if (!guestModal.hidden) closeGuestModal();
 });
 
 confirmBtn.addEventListener('click', async () => {
@@ -125,6 +179,35 @@ function closeModal() {
   modal.hidden = true;
   pendingDeleteId = null;
 }
+
+function openGuestModal(id) {
+  hideGuestError();
+  if (id) {
+    const row = allRows.find(r => r.id === id);
+    if (!row) return;
+    guestTitle.textContent = 'Gast bearbeiten';
+    gId.value       = row.id;
+    gVorname.value  = row.vorname || '';
+    gNachname.value = row.nachname || '';
+    gEmail.value    = row.email || '';
+    gMax.value      = String(row.max_begleitpersonen ?? 0);
+  } else {
+    guestTitle.textContent = 'Gast hinzufügen';
+    guestForm.reset();
+    gId.value = '';
+    gMax.value = '0';
+  }
+  guestModal.hidden = false;
+  setTimeout(() => gVorname.focus(), 50);
+}
+
+function closeGuestModal() {
+  guestModal.hidden = true;
+  guestForm.reset();
+}
+
+function showGuestError(msg) { guestFormErr.textContent = msg; guestFormErr.hidden = false; }
+function hideGuestError()    { guestFormErr.hidden = true; guestFormErr.textContent = ''; }
 
 async function deleteRow(id) {
   const token = sessionStorage.getItem(STORAGE_KEY);
@@ -184,6 +267,7 @@ async function enterDashboard(preloaded) {
 
 function applyData({ rows, stats }) {
   allRows = rows || [];
+  statOffen.textContent    = stats?.offen          ?? 0;
   statJa.textContent       = stats?.angemeldet     ?? 0;
   statNein.textContent     = stats?.abgemeldet     ?? 0;
   statPersonen.textContent = stats?.personen_total ?? 0;
@@ -206,7 +290,7 @@ function render() {
   }
 
   if (filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty">Keine Einträge.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">Keine Einträge.</td></tr>`;
   } else {
     tbody.innerHTML = filtered.map(rowHtml).join('');
   }
@@ -214,20 +298,31 @@ function render() {
 }
 
 function rowHtml(r) {
-  const isJa = r.status === 'angemeldet';
-  const badge = isJa
-    ? `<span class="status-badge status-badge--ok"><span class="status-badge__dot"></span>Zugesagt</span>`
-    : `<span class="status-badge status-badge--no"><span class="status-badge__dot"></span>Abgesagt</span>`;
+  const isJa    = r.status === 'angemeldet';
+  const isNein  = r.status === 'abgemeldet';
+  const isOffen = r.status === 'offen';
+  let badge;
+  if (isJa)    badge = `<span class="status-badge status-badge--ok"><span class="status-badge__dot"></span>Zugesagt</span>`;
+  else if (isNein)  badge = `<span class="status-badge status-badge--no"><span class="status-badge__dot"></span>Abgesagt</span>`;
+  else         badge = `<span class="status-badge status-badge--neutral"><span class="status-badge__dot"></span>Offen</span>`;
+
   const personen = isJa ? 1 + (r.anzahl_begleitpersonen || 0) : 0;
   return `
     <tr data-id="${esc(r.id)}">
       <td>${badge}</td>
       <td><strong>${esc(r.vorname)}</strong> ${esc(r.nachname)}</td>
       <td>${esc(r.email)}</td>
+      <td class="num">${r.max_begleitpersonen ?? 0}</td>
       <td class="num">${isJa ? personen : '–'}</td>
-      <td>${formatDate(r.updated_at || r.created_at)}</td>
-      <td>
-        <button type="button" class="delete-btn js-delete" title="Eintrag löschen" aria-label="Eintrag löschen">
+      <td>${isOffen ? '–' : formatDate(r.updated_at || r.created_at)}</td>
+      <td class="row-actions">
+        <button type="button" class="action-btn js-edit" title="Gast bearbeiten" aria-label="Gast bearbeiten">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+        <button type="button" class="action-btn action-btn--danger js-delete" title="Eintrag löschen" aria-label="Eintrag löschen">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
@@ -258,19 +353,22 @@ function esc(s) {
 /* --- CSV Export --------------------------------------------------- */
 
 function exportCsv() {
-  const cols = ['Status', 'Vorname', 'Nachname', 'E-Mail', 'Begleitpersonen', 'Personen total', 'Antwort am', 'Bestaetigung gesendet'];
+  const cols = ['Status', 'Vorname', 'Nachname', 'E-Mail', 'Max Begleitpersonen', 'Begleitpersonen', 'Personen total', 'Antwort am', 'Bestaetigung gesendet'];
   const lines = [cols.join(';')];
 
   allRows.forEach(r => {
-    const isJa = r.status === 'angemeldet';
+    const isJa    = r.status === 'angemeldet';
+    const isNein  = r.status === 'abgemeldet';
+    const label   = isJa ? 'Zugesagt' : (isNein ? 'Abgesagt' : 'Offen');
     lines.push([
-      isJa ? 'Zugesagt' : 'Abgesagt',
+      label,
       csvCell(r.vorname),
       csvCell(r.nachname),
       csvCell(r.email),
+      r.max_begleitpersonen ?? 0,
       isJa ? (r.anzahl_begleitpersonen || 0) : '',
       isJa ? 1 + (r.anzahl_begleitpersonen || 0) : '',
-      r.updated_at ? new Date(r.updated_at).toLocaleString('de-CH') : '',
+      isJa || isNein ? new Date(r.updated_at).toLocaleString('de-CH') : '',
       r.bestaetigung_gesendet ? 'ja' : 'nein'
     ].join(';'));
   });
