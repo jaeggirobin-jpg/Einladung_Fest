@@ -15,66 +15,67 @@ export async function handler(event) {
   }
 
   let data;
-  try {
-    data = JSON.parse(event.body);
-  } catch {
-    return resp(400, { error: 'Ungültige Anfrage' });
-  }
+  try { data = JSON.parse(event.body); }
+  catch { return resp(400, { error: 'Ungültige Anfrage' }); }
 
-  if (data.website) {
-    return resp(200, { ok: true });
-  }
+  if (data.website) return resp(200, { ok: true });
 
-  const vorname  = String(data.vorname  || '').trim().slice(0, 100);
-  const nachname = String(data.nachname || '').trim().slice(0, 100);
-  const email    = String(data.email    || '').trim().toLowerCase().slice(0, 200);
-  const status   = data.status === 'abgemeldet' ? 'abgemeldet' : 'angemeldet';
+  const email  = String(data.email || '').trim().toLowerCase().slice(0, 200);
+  const status = data.status === 'abgemeldet' ? 'abgemeldet' : 'angemeldet';
 
   let begleit = parseInt(data.anzahl_begleitpersonen, 10);
   if (isNaN(begleit) || begleit < 0) begleit = 0;
-  if (begleit > 10) begleit = 10;
   if (status === 'abgemeldet') begleit = 0;
 
-  if (!vorname || !nachname || !email) {
-    return resp(400, { error: 'Bitte alle Pflichtfelder ausfüllen.' });
-  }
-  if (!EMAIL_RE.test(email)) {
+  if (!email || !EMAIL_RE.test(email)) {
     return resp(400, { error: 'Bitte eine gültige E-Mail-Adresse angeben.' });
   }
 
-  const { error: upsertError } = await supabase
+  // Gast muss in der Liste sein
+  const { data: gast, error: lookupError } = await supabase
     .from('anmeldungen')
-    .upsert(
-      {
-        vorname,
-        nachname,
-        email,
-        anzahl_begleitpersonen: begleit,
-        status,
-        bestaetigung_gesendet: false
-      },
-      { onConflict: 'email' }
-    );
+    .select('id, vorname, nachname, max_begleitpersonen')
+    .eq('email', email)
+    .maybeSingle();
 
-  if (upsertError) {
-    console.error('Supabase upsert error:', upsertError);
-    return resp(500, {
-      error: 'Speichern fehlgeschlagen. Bitte später erneut versuchen.'
-    });
+  if (lookupError) {
+    console.error('Supabase lookup error:', lookupError);
+    return resp(500, { error: 'Prüfung fehlgeschlagen. Bitte später erneut versuchen.' });
+  }
+  if (!gast) {
+    return resp(403, { error: 'Diese E-Mail-Adresse ist nicht in der Gästeliste.' });
+  }
+
+  // Begleitperson-Limit serverseitig prüfen
+  const maxBegleit = gast.max_begleitpersonen ?? 0;
+  if (begleit > maxBegleit) begleit = maxBegleit;
+
+  const { error: updateError } = await supabase
+    .from('anmeldungen')
+    .update({
+      anzahl_begleitpersonen: begleit,
+      status,
+      bestaetigung_gesendet: false
+    })
+    .eq('id', gast.id);
+
+  if (updateError) {
+    console.error('Supabase update error:', updateError);
+    return resp(500, { error: 'Speichern fehlgeschlagen. Bitte später erneut versuchen.' });
   }
 
   if (status === 'angemeldet') {
     try {
-      await sendBestaetigung({ vorname, email, begleit });
+      await sendBestaetigung({ vorname: gast.vorname, email, begleit });
       await supabase.from('anmeldungen')
         .update({ bestaetigung_gesendet: true })
-        .eq('email', email);
+        .eq('id', gast.id);
     } catch (e) {
       console.error('Mailversand fehlgeschlagen:', e);
     }
   }
 
-  return resp(200, { ok: true, status });
+  return resp(200, { ok: true, status, vorname: gast.vorname, nachname: gast.nachname });
 }
 
 async function sendBestaetigung({ vorname, email, begleit }) {

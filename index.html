@@ -38,61 +38,49 @@
         </p>
       </div>
 
-      <div id="intent-step" class="intent">
-        <p class="intent__question">Können Sie teilnehmen?</p>
-        <div class="intent__buttons">
-          <button type="button" class="intent-btn intent-btn--yes" data-intent="angemeldet">
-            <span class="intent-btn__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </span>
-            <span>Ja, ich nehme teil</span>
-          </button>
-          <button type="button" class="intent-btn intent-btn--no" data-intent="abgemeldet">
-            <span class="intent-btn__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-            </span>
-            <span>Nein, leider nicht</span>
-          </button>
-        </div>
-      </div>
-
-      <form id="anmeldung-form" class="form" novalidate>
-
+      <form id="email-form" class="email-step" novalidate>
+        <p class="step-question">Bitte geben Sie Ihre E-Mail-Adresse ein:</p>
         <div class="field">
-          <label for="vorname">Vorname</label>
-          <input type="text" id="vorname" name="vorname" required autocomplete="given-name" maxlength="100">
+          <label for="check-email">E-Mail</label>
+          <input type="email" id="check-email" name="check-email" required autocomplete="email" maxlength="200" inputmode="email">
+        </div>
+        <div id="email-error" class="form-error" role="alert" hidden></div>
+        <button type="submit" id="email-btn" class="btn-submit">
+          <span class="btn-submit__label">Weiter</span>
+          <span class="btn-submit__spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+
+      <form id="anmeldung-form" class="form" novalidate hidden>
+
+        <p class="greeting">Guten Tag, <span id="guest-name"></span></p>
+
+        <div class="intent">
+          <p class="intent__question">Können Sie teilnehmen?</p>
+          <div class="intent__buttons">
+            <button type="button" class="intent-btn intent-btn--yes" data-intent="angemeldet">
+              <span class="intent-btn__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span>Ja, ich nehme teil</span>
+            </button>
+            <button type="button" class="intent-btn intent-btn--no" data-intent="abgemeldet">
+              <span class="intent-btn__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </span>
+              <span>Nein, leider nicht</span>
+            </button>
+          </div>
         </div>
 
-        <div class="field">
-          <label for="nachname">Nachname</label>
-          <input type="text" id="nachname" name="nachname" required autocomplete="family-name" maxlength="100">
-        </div>
-
-        <div class="field">
-          <label for="email">E-Mail</label>
-          <input type="email" id="email" name="email" required autocomplete="email" maxlength="200" inputmode="email">
-        </div>
-
-        <div class="field" id="begleit-field">
+        <div class="field" id="begleit-field" hidden>
           <label for="anzahl_begleitpersonen">Begleitpersonen</label>
-          <select id="anzahl_begleitpersonen" name="anzahl_begleitpersonen">
-            <option value="0">Keine Begleitperson</option>
-            <option value="1">1 Begleitperson</option>
-            <option value="2">2 Begleitpersonen</option>
-            <option value="3">3 Begleitpersonen</option>
-            <option value="4">4 Begleitpersonen</option>
-            <option value="5">5 Begleitpersonen</option>
-            <option value="6">6 Begleitpersonen</option>
-            <option value="7">7 Begleitpersonen</option>
-            <option value="8">8 Begleitpersonen</option>
-            <option value="9">9 Begleitpersonen</option>
-            <option value="10">10 Begleitpersonen</option>
-          </select>
+          <select id="anzahl_begleitpersonen" name="anzahl_begleitpersonen"></select>
         </div>
 
         <div class="honeypot" aria-hidden="true">
