@@ -161,6 +161,7 @@ function showError(msg)      { errorBox.textContent = msg; errorBox.hidden = fal
 function hideError()         { errorBox.hidden = true; errorBox.textContent = ''; }
 
 function showSuccess(status) {
+  setSubmitting(false);
   form.hidden = true;
   emailForm.hidden = true;
 
