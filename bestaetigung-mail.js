@@ -21,13 +21,13 @@ export function bestaetigungHtml({ vorname, begleit }) {
   let personenText;
   if (b === 0) {
     personenText =
-      `Ihre Anmeldung ist für ${HL(1, 'Person')} notiert.`;
+      `Deine Anmeldung ist für ${HL(1, 'Person')} notiert.`;
   } else if (b === 1) {
     personenText =
-      `Ihre Anmeldung ist für ${HL(2, 'Personen')} notiert – Sie und ${HL(1, 'Begleitperson')}.`;
+      `Deine Anmeldung ist für ${HL(2, 'Personen')} notiert – Du und ${HL(1, 'Begleitperson')}.`;
   } else {
     personenText =
-      `Ihre Anmeldung ist für ${HL(total, 'Personen')} notiert – Sie und ${HL(b, 'Begleitpersonen')}.`;
+      `Deine Anmeldung ist für ${HL(total, 'Personen')} notiert – Du und ${HL(b, 'Begleitpersonen')}.`;
   }
 
   // --- HTML der E-Mail ---
@@ -54,7 +54,7 @@ export function bestaetigungHtml({ vorname, begleit }) {
 <body style="margin:0; padding:0; background-color:#EFEADD; font-family:'DM Sans','Helvetica Neue',Helvetica,Arial,sans-serif;">
 
 <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#EFEADD;">
-  Ihre Anmeldung zur Geschäftsübergabe der Jäggi Vollmer GmbH ist eingegangen.
+  Deine/eure Anmeldung zur Geschäftsübergabe der Jäggi Vollmer GmbH ist eingegangen.
 </div>
 
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#EFEADD;">
@@ -74,7 +74,7 @@ export function bestaetigungHtml({ vorname, begleit }) {
         <tr>
           <td style="background-color:#F5EEDC; padding:44px 40px;" align="center">
             <div style="color:#BF853B; font-size:11px; font-weight:500; letter-spacing:4px; margin-bottom:14px;">ANMELDUNG BESTÄTIGT</div>
-            <div style="color:#4B575D; font-size:28px; font-weight:500; line-height:1.2; letter-spacing:-0.3px;">Sie sind dabei</div>
+            <div style="color:#4B575D; font-size:28px; font-weight:500; line-height:1.2; letter-spacing:-0.3px;">Du bist dabei</div>
             <div style="width:40px; height:1px; background-color:#BF853B; margin:24px auto 0; font-size:0; line-height:0;">&nbsp;</div>
           </td>
         </tr>
@@ -83,7 +83,7 @@ export function bestaetigungHtml({ vorname, begleit }) {
           <td class="px" style="background-color:#FDFAF3; padding:40px 40px 8px;">
             <p style="color:#4B575D; font-size:16px; line-height:1.75; margin:0;">${anrede}</p>
             <p style="color:#4B575D; font-size:16px; line-height:1.75; margin:20px 0 0;">
-              Vielen Dank für Ihre Anmeldung zur Geschäftsübergabe der Jäggi Vollmer GmbH. Wir freuen uns sehr, Sie an diesem besonderen Abend begrüssen zu dürfen.
+              Vielen Dank für deine/eure Anmeldung zur Geschäftsübergabe der Jäggi Vollmer GmbH. Wir freuen uns sehr, dich/euch an diesem besonderen Abend begrüssen zu dürfen.
             </p>
             <p style="color:#4B575D; font-size:16px; line-height:1.75; margin:20px 0 0;">${personenText}</p>
           </td>
@@ -100,15 +100,15 @@ export function bestaetigungHtml({ vorname, begleit }) {
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
                     <tr>
                       <td style="color:#BF853B; font-size:15px; font-weight:700; padding:3px 14px 3px 0; white-space:nowrap;" valign="top">17:00</td>
-                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Start/Empfang/Essen</td>
+                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Apéro/Essen</td>
                     </tr>
                     <tr>
                       <td style="color:#BF853B; font-size:15px; font-weight:700; padding:3px 14px 3px 0; white-space:nowrap;" valign="top">18:30</td>
-                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Übergabe</td>
+                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Geschäftsübergabe</td>
                     </tr>
                     <tr>
                       <td style="color:#BF853B; font-size:15px; font-weight:700; padding:3px 14px 3px 0; white-space:nowrap;" valign="top">danach</td>
-                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Essen/Ausklang</td>
+                      <td style="color:#4B575D; font-size:15px; padding:3px 0;" valign="top">Essen/Feiern/Bar</td>
                     </tr>
                   </table>
                   <div style="width:32px; height:1px; background-color:#C9A877; margin:22px auto 18px; font-size:0; line-height:0;">&nbsp;</div>
@@ -122,10 +122,10 @@ export function bestaetigungHtml({ vorname, begleit }) {
         <tr>
           <td class="px" style="background-color:#FDFAF3; padding:0 40px 8px;">
             <p style="color:#929A9D; font-size:14px; line-height:1.7; margin:0;">
-              Im Anhang finden Sie eine Kalenderdatei (.ics), die Sie direkt in Outlook, Apple Kalender oder Google Calendar öffnen können.
+              Im Anhang findest du eine Kalenderdatei (.ics), die du direkt in Outlook, Apple Kalender oder Google Calendar öffnen kannst.
             </p>
             <p style="color:#929A9D; font-size:14px; line-height:1.7; margin:14px 0 0;">
-              Sollten Sie wider Erwarten doch verhindert sein, genügt eine kurze Antwort auf diese E-Mail.
+              Solltest du wider Erwarten doch verhindert sein, genügt eine kurze Antwort auf die Mail: info@jaeggivollmer.ch
             </p>
           </td>
         </tr>
@@ -133,9 +133,8 @@ export function bestaetigungHtml({ vorname, begleit }) {
         <tr>
           <td class="px" style="background-color:#FDFAF3; padding:32px 40px 44px;">
             <p style="color:#4B575D; font-size:16px; line-height:1.75; margin:0;">
-              Mit herzlichen Grüssen<br><br>
-              <span style="font-weight:500;">Familie Jäggi, die Geschäftsleitung der Jäggi Vollmer GmbH</span><br>
-              <span style="color:#929A9D;">und das gesamte Team von Jäggi Vollmer GmbH</span>
+              Herzlich<br><br>
+              <span style="font-weight:500;">Familie Jäggi und Team</span><br>
             </p>
           </td>
         </tr>
