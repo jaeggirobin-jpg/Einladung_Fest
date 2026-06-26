@@ -50,7 +50,7 @@ emailForm.addEventListener('submit', async (e) => {
       return;
     }
     if (!out.found) {
-      showEmailError('Diese E-Mail-Adresse steht nicht auf der Gästeliste. Bitte prüfen Sie die Adresse oder kontaktieren Sie uns unter info@jaeggivollmer.ch.');
+      showEmailError('Diese E-Mail-Adresse steht nicht auf der Gästeliste. Bitte prüfe die Adresse oder melde dich bei uns unter info@jaeggivollmer.ch.');
       return;
     }
     currentGuest = { email, ...out };
@@ -167,15 +167,15 @@ function showSuccess(status) {
 
   if (status === 'abgemeldet') {
     successPanel.classList.add('is-decline');
-    successTitle.textContent = 'Schade, dass Sie nicht dabei sein können.';
-    successText.textContent  = 'Ihre Absage ist bei uns notiert. Vielen Dank für die Rückmeldung.';
+    successTitle.textContent = 'Schade, dass du nicht dabei sein kannst.';
+    successText.textContent  = 'Deine Absage ist bei uns notiert. Vielen Dank für die Rückmeldung.';
     iconYes.hidden = true;
     iconNo.hidden  = false;
     document.querySelectorAll('.success__text--muted').forEach(el => el.hidden = true);
   } else {
     successPanel.classList.remove('is-decline');
     successTitle.textContent = 'Vielen Dank!';
-    successText.textContent  = 'Ihre Anmeldung ist eingegangen. Eine Bestätigung wurde an Ihre E-Mail-Adresse versendet.';
+    successText.textContent  = 'Deine Anmeldung ist eingegangen. Eine Bestätigung wurde an deine E-Mail-Adresse versendet.';
     iconYes.hidden = false;
     iconNo.hidden  = true;
   }
