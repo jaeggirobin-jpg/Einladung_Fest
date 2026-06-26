@@ -16,9 +16,9 @@ const EVENT = {
   location:   'Horburgstrasse 96, 4057 Basel',
   description: [
     'Programm:',
-    '17:00   Start/Empfang/Essen',
-    '18:30   Übergabe',
-    'danach  Essen/Ausklang',
+    '17:00   Apéro/Essen',
+    '18:30   Geschäftsübergabe',
+    'danach  Essen/Feiern/Bar',
     '',
     'Wir freuen uns auf Sie!'
   ].join('\n')
