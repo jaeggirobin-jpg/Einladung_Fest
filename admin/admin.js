@@ -38,6 +38,18 @@ const gMax         = document.getElementById('g-max');
 const guestSaveBtn = document.getElementById('guest-save-btn');
 const guestFormErr = document.getElementById('guest-form-error');
 
+const importBtn      = document.getElementById('import-btn');
+const importModal    = document.getElementById('import-modal');
+const importFile     = document.getElementById('import-file');
+const importPreview  = document.getElementById('import-preview');
+const importCount    = document.getElementById('import-count');
+const previewTable   = document.getElementById('preview-table');
+const importError    = document.getElementById('import-error');
+const importResult   = document.getElementById('import-result');
+const importRunBtn   = document.getElementById('import-run-btn');
+
+let parsedGuests = [];
+
 let pendingDeleteId = null;
 
 let allRows = [];
@@ -146,7 +158,165 @@ document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (!modal.hidden) closeModal();
   if (!guestModal.hidden) closeGuestModal();
+  if (!importModal.hidden) closeImportModal();
 });
+
+/* --- CSV-Import --------------------------------------------------- */
+
+importBtn.addEventListener('click', () => openImportModal());
+importModal.addEventListener('click', (e) => { if (e.target.dataset.close) closeImportModal(); });
+
+importFile.addEventListener('change', async () => {
+  hideImportError();
+  importResult.hidden = true;
+  importPreview.hidden = true;
+  importRunBtn.disabled = true;
+  const file = importFile.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    parsedGuests = parseCsv(text);
+    if (parsedGuests.length === 0) throw new Error('Keine Datenzeilen gefunden.');
+    renderPreview(parsedGuests);
+    importPreview.hidden = false;
+    importRunBtn.disabled = false;
+  } catch (err) {
+    parsedGuests = [];
+    showImportError(err.message);
+  }
+});
+
+importRunBtn.addEventListener('click', async () => {
+  if (parsedGuests.length === 0) return;
+  importRunBtn.disabled = true;
+  importRunBtn.textContent = 'Importiere…';
+  hideImportError();
+  try {
+    const token = sessionStorage.getItem(STORAGE_KEY);
+    const res = await fetch('/.netlify/functions/admin-guests-import', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guests: parsedGuests })
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || `Fehler ${res.status}`);
+    showImportResult(out);
+    await loadAndRender();
+  } catch (err) {
+    showImportError(err.message);
+  } finally {
+    importRunBtn.disabled = false;
+    importRunBtn.textContent = 'Importieren';
+  }
+});
+
+function openImportModal() {
+  importFile.value = '';
+  importPreview.hidden = true;
+  importResult.hidden = true;
+  importRunBtn.disabled = true;
+  importRunBtn.textContent = 'Importieren';
+  hideImportError();
+  parsedGuests = [];
+  importModal.hidden = false;
+}
+
+function closeImportModal() {
+  importModal.hidden = true;
+  parsedGuests = [];
+}
+
+function showImportError(msg) { importError.textContent = msg; importError.hidden = false; }
+function hideImportError()    { importError.hidden = true; importError.textContent = ''; }
+
+function renderPreview(rows) {
+  importCount.textContent = `${rows.length} ${rows.length === 1 ? 'Zeile' : 'Zeilen'} erkannt`;
+  const head = `<thead><tr><th>Vorname</th><th>Nachname</th><th>E-Mail</th><th class="num">Max BP</th></tr></thead>`;
+  const body = '<tbody>' + rows.map(r => `
+    <tr${!r.vorname || !r.nachname || !r.email ? ' class="row-error"' : ''}>
+      <td>${esc(r.vorname)}</td>
+      <td>${esc(r.nachname)}</td>
+      <td>${esc(r.email)}</td>
+      <td class="num">${r.max_begleitpersonen}</td>
+    </tr>
+  `).join('') + '</tbody>';
+  previewTable.innerHTML = head + body;
+}
+
+function showImportResult({ counts, errors }) {
+  const parts = [];
+  if (counts.created > 0)  parts.push(`<div class="import-result__row"><span class="import-result__ok">✓ ${counts.created} neue Gäste hinzugefügt</span></div>`);
+  if (counts.updated > 0)  parts.push(`<div class="import-result__row"><span class="import-result__update">↻ ${counts.updated} bestehende Gäste aktualisiert</span></div>`);
+  if (counts.errors > 0)   parts.push(`<div class="import-result__row"><span class="import-result__error">✗ ${counts.errors} Zeilen fehlerhaft</span></div>`);
+  if (parts.length === 0) parts.push('<div>Nichts wurde geändert.</div>');
+
+  let details = '';
+  if (errors?.length) {
+    details = '<div class="import-result__details">' + errors.map(e =>
+      `Zeile ${e.zeile}${e.name ? ` (${esc(e.name)})` : ''}: ${esc(e.grund)}`
+    ).join('<br>') + '</div>';
+  }
+  importResult.innerHTML = parts.join('') + details;
+  importResult.hidden = false;
+  importPreview.hidden = true;
+  importRunBtn.disabled = true;
+}
+
+function parseCsv(text) {
+  text = text.replace(/^﻿/, '');
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (lines.length < 2) throw new Error('CSV enthält keine Datenzeilen.');
+
+  const firstLine = lines[0];
+  const semi = (firstLine.match(/;/g) || []).length;
+  const comma = (firstLine.match(/,/g) || []).length;
+  const delim = semi >= comma ? ';' : ',';
+
+  const parseRow = (line) => {
+    const out = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') {
+        if (inQ && line[i + 1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (c === delim && !inQ) { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(v => v.trim());
+  };
+
+  const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, ' ').trim());
+  const findCol = (variants) => {
+    for (const v of variants) {
+      const i = headers.indexOf(v);
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const iVor  = findCol(['vorname', 'firstname', 'first name']);
+  const iNach = findCol(['nachname', 'name', 'lastname', 'last name', 'familienname']);
+  const iMail = findCol(['e-mail', 'email', 'mail', 'e-mail-adresse']);
+  const iMax  = findCol(['max begleitpersonen', 'begleitpersonen', 'max bp', 'max', 'begleitung']);
+
+  if (iVor < 0 || iNach < 0 || iMail < 0) {
+    throw new Error('Spalten Vorname, Nachname und E-Mail sind Pflicht. Bitte die Vorlage nutzen.');
+  }
+
+  return lines.slice(1).map(parseRow).map(row => {
+    let max = iMax >= 0 ? parseInt(row[iMax], 10) : 0;
+    if (isNaN(max) || max < 0) max = 0;
+    if (max > 10) max = 10;
+    return {
+      vorname:  row[iVor]  || '',
+      nachname: row[iNach] || '',
+      email:    (row[iMail] || '').toLowerCase(),
+      max_begleitpersonen: max
+    };
+  }).filter(r => r.vorname || r.nachname || r.email);
+}
 
 confirmBtn.addEventListener('click', async () => {
   if (!pendingDeleteId) return closeModal();
