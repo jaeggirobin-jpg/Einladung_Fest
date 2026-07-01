@@ -21,7 +21,7 @@ export async function handler(event) {
 
   const { data: row, error } = await supabase
     .from('anmeldungen')
-    .select('vorname, nachname, status, max_begleitpersonen, anzahl_begleitpersonen')
+    .select('vorname, nachname, status, max_begleitpersonen, anzahl_begleitpersonen, begleitpersonen')
     .eq('email', email)
     .maybeSingle();
 
@@ -40,7 +40,8 @@ export async function handler(event) {
     nachname: row.nachname,
     status: row.status,
     max_begleitpersonen: row.max_begleitpersonen ?? 0,
-    anzahl_begleitpersonen: row.anzahl_begleitpersonen ?? 0
+    anzahl_begleitpersonen: row.anzahl_begleitpersonen ?? 0,
+    begleitpersonen: Array.isArray(row.begleitpersonen) ? row.begleitpersonen : []
   });
 }
 

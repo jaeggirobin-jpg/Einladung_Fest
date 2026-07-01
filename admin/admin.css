@@ -360,6 +360,13 @@ html, body {
   background: currentColor;
 }
 
+.row-subline {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
 .empty {
   text-align: center;
   color: var(--text-muted);

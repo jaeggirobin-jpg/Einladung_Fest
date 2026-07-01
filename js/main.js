@@ -11,6 +11,8 @@ const form         = document.getElementById('anmeldung-form');
 const guestName    = document.getElementById('guest-name');
 const begleitField = document.getElementById('begleit-field');
 const begleitSel   = document.getElementById('anzahl_begleitpersonen');
+const begleitNames = document.getElementById('begleit-names');
+const begleitList  = document.getElementById('begleit-list');
 const statusInput  = document.getElementById('status');
 const submitBtn    = document.getElementById('submit-btn');
 const submitLabel  = submitBtn.querySelector('.btn-submit__label');
@@ -72,8 +74,10 @@ function enterFormStep() {
   if (max > 0) {
     begleitSel.innerHTML = buildBegleitOptions(max, currentGuest.anzahl_begleitpersonen);
     begleitField.hidden = false;
+    renderBegleitNameFields(currentGuest.anzahl_begleitpersonen || 0, currentGuest.begleitpersonen || []);
   } else {
     begleitField.hidden = true;
+    begleitNames.hidden = true;
   }
 
   // Wenn bereits geantwortet: vorherige Auswahl markieren
@@ -84,6 +88,39 @@ function enterFormStep() {
   form.hidden = false;
   form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
+
+function renderBegleitNameFields(count, existing = []) {
+  if (!count || count < 1) {
+    begleitList.innerHTML = '';
+    begleitNames.hidden = true;
+    return;
+  }
+  const rows = [];
+  for (let i = 0; i < count; i++) {
+    const ex = existing[i] || {};
+    rows.push(`
+      <div class="begleit-person">
+        <div class="begleit-person__label">Begleitperson ${i + 1}</div>
+        <div class="begleit-person__row">
+          <input type="text" class="js-bp-vorname" data-idx="${i}" placeholder="Vorname" value="${esc(ex.vorname || '')}" maxlength="100" required>
+          <input type="text" class="js-bp-nachname" data-idx="${i}" placeholder="Nachname" value="${esc(ex.nachname || '')}" maxlength="100" required>
+        </div>
+      </div>
+    `);
+  }
+  begleitList.innerHTML = rows.join('');
+  begleitNames.hidden = false;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+begleitSel?.addEventListener('change', () => {
+  const n = parseInt(begleitSel.value, 10) || 0;
+  const existing = collectBegleitPersonen();
+  renderBegleitNameFields(n, existing);
+});
 
 function buildBegleitOptions(max, current) {
   let html = '';
@@ -108,7 +145,13 @@ function selectIntent(intent) {
   statusInput.value = intent;
   form.classList.toggle('is-decline', isDecline);
   submitLabel.textContent = isDecline ? 'Absage senden' : 'Zusage senden';
-  if (isDecline) begleitSel.value = '0';
+  if (isDecline) {
+    begleitSel.value = '0';
+    begleitNames.hidden = true;
+  } else {
+    const n = parseInt(begleitSel.value, 10) || 0;
+    if (n > 0) renderBegleitNameFields(n, collectBegleitPersonen());
+  }
 
   document.querySelectorAll('.intent-btn').forEach(b => {
     b.classList.toggle('is-selected', b.dataset.intent === intent);
@@ -118,15 +161,38 @@ function selectIntent(intent) {
   hideError();
 }
 
+function collectBegleitPersonen() {
+  const vs = begleitList.querySelectorAll('.js-bp-vorname');
+  const ns = begleitList.querySelectorAll('.js-bp-nachname');
+  const out = [];
+  for (let i = 0; i < vs.length; i++) {
+    out.push({
+      vorname:  vs[i].value.trim(),
+      nachname: ns[i]?.value.trim() || ''
+    });
+  }
+  return out;
+}
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideError();
 
   const status = statusInput.value === 'abgemeldet' ? 'abgemeldet' : 'angemeldet';
+  const begleitN = status === 'abgemeldet' ? 0 : (parseInt(begleitSel.value, 10) || 0);
+  const begleitpersonen = status === 'angemeldet' ? collectBegleitPersonen() : [];
+
+  if (status === 'angemeldet' && begleitN > 0) {
+    if (begleitpersonen.length !== begleitN || begleitpersonen.some(p => !p.vorname || !p.nachname)) {
+      return showError('Bitte Vor- und Nachname für jede Begleitperson angeben.');
+    }
+  }
+
   const payload = {
     email:   currentGuest.email,
     status,
-    anzahl_begleitpersonen: status === 'abgemeldet' ? '0' : (begleitSel.value || '0'),
+    anzahl_begleitpersonen: String(begleitN),
+    begleitpersonen,
     website: form.website.value
   };
 

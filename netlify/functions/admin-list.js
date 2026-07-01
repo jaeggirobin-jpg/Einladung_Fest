@@ -19,7 +19,7 @@ export async function handler(event) {
 
   const { data, error } = await supabase
     .from('anmeldungen')
-    .select('id, created_at, updated_at, vorname, nachname, email, anzahl_begleitpersonen, max_begleitpersonen, status, bestaetigung_gesendet')
+    .select('id, created_at, updated_at, vorname, nachname, email, anzahl_begleitpersonen, max_begleitpersonen, begleitpersonen, status, bestaetigung_gesendet')
     .order('nachname', { ascending: true });
 
   if (error) {

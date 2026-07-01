@@ -27,8 +27,22 @@ export async function handler(event) {
   if (isNaN(begleit) || begleit < 0) begleit = 0;
   if (status === 'abgemeldet') begleit = 0;
 
+  const rawNames = Array.isArray(data.begleitpersonen) ? data.begleitpersonen : [];
+  const begleitpersonen = status === 'angemeldet'
+    ? rawNames.slice(0, begleit).map(p => ({
+        vorname:  String(p?.vorname  || '').trim().slice(0, 100),
+        nachname: String(p?.nachname || '').trim().slice(0, 100)
+      }))
+    : [];
+
   if (!email || !EMAIL_RE.test(email)) {
     return resp(400, { error: 'Bitte eine gültige E-Mail-Adresse angeben.' });
+  }
+
+  if (status === 'angemeldet' && begleit > 0) {
+    if (begleitpersonen.length !== begleit || begleitpersonen.some(p => !p.vorname || !p.nachname)) {
+      return resp(400, { error: 'Bitte Vor- und Nachname für jede Begleitperson angeben.' });
+    }
   }
 
   // Gast muss in der Liste sein
@@ -54,6 +68,7 @@ export async function handler(event) {
     .from('anmeldungen')
     .update({
       anzahl_begleitpersonen: begleit,
+      begleitpersonen,
       status,
       bestaetigung_gesendet: false
     })

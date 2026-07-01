@@ -477,10 +477,14 @@ function rowHtml(r) {
   else         badge = `<span class="status-badge status-badge--neutral"><span class="status-badge__dot"></span>Offen</span>`;
 
   const personen = isJa ? 1 + (r.anzahl_begleitpersonen || 0) : 0;
+  const bpList = Array.isArray(r.begleitpersonen) ? r.begleitpersonen : [];
+  const bpNames = isJa && bpList.length
+    ? `<div class="row-subline">+ ${bpList.map(p => esc(`${p.vorname || ''} ${p.nachname || ''}`.trim())).join(', ')}</div>`
+    : '';
   return `
     <tr data-id="${esc(r.id)}">
       <td>${badge}</td>
-      <td><strong>${esc(r.vorname)}</strong> ${esc(r.nachname)}</td>
+      <td><strong>${esc(r.vorname)}</strong> ${esc(r.nachname)}${bpNames}</td>
       <td>${esc(r.email)}</td>
       <td class="num">${r.max_begleitpersonen ?? 0}</td>
       <td class="num">${isJa ? personen : '–'}</td>
@@ -523,13 +527,17 @@ function esc(s) {
 /* --- CSV Export --------------------------------------------------- */
 
 function exportCsv() {
-  const cols = ['Status', 'Vorname', 'Nachname', 'E-Mail', 'Max Begleitpersonen', 'Begleitpersonen', 'Personen total', 'Antwort am', 'Bestaetigung gesendet'];
+  const cols = ['Status', 'Vorname', 'Nachname', 'E-Mail', 'Max Begleitpersonen', 'Begleitpersonen', 'Namen Begleitpersonen', 'Personen total', 'Antwort am', 'Bestaetigung gesendet'];
   const lines = [cols.join(';')];
 
   allRows.forEach(r => {
     const isJa    = r.status === 'angemeldet';
     const isNein  = r.status === 'abgemeldet';
     const label   = isJa ? 'Zugesagt' : (isNein ? 'Abgesagt' : 'Offen');
+    const bpList  = Array.isArray(r.begleitpersonen) ? r.begleitpersonen : [];
+    const bpNames = isJa && bpList.length
+      ? bpList.map(p => `${p.vorname || ''} ${p.nachname || ''}`.trim()).join(', ')
+      : '';
     lines.push([
       label,
       csvCell(r.vorname),
@@ -537,6 +545,7 @@ function exportCsv() {
       csvCell(r.email),
       r.max_begleitpersonen ?? 0,
       isJa ? (r.anzahl_begleitpersonen || 0) : '',
+      csvCell(bpNames),
       isJa ? 1 + (r.anzahl_begleitpersonen || 0) : '',
       isJa || isNein ? new Date(r.updated_at).toLocaleString('de-CH') : '',
       r.bestaetigung_gesendet ? 'ja' : 'nein'
