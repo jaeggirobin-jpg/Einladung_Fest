@@ -535,6 +535,83 @@ html, body {
   .modal__grid { grid-template-columns: 1fr; }
 }
 
+.modal__card--wide { max-width: 560px; }
+
+.link {
+  color: var(--gold);
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(191, 133, 59, 0.4);
+}
+.link:hover { border-bottom-color: var(--gold); }
+
+.modal__field input[type="file"] {
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.preview-scroll {
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--cream);
+  margin-top: 8px;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.preview-table th,
+.preview-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.preview-table th {
+  background: var(--surface);
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+}
+.preview-table .num { text-align: right; }
+.preview-table tr:last-child td { border-bottom: none; }
+.preview-table .row-error td {
+  background: var(--no-bg);
+  color: var(--no);
+}
+
+.import-result {
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 12px 0 4px;
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+.import-result__row { display: flex; gap: 8px; align-items: center; }
+.import-result__row + .import-result__row { margin-top: 4px; }
+.import-result__ok      { color: var(--ok); font-weight: 500; }
+.import-result__update  { color: var(--gold); font-weight: 500; }
+.import-result__error   { color: var(--no); font-weight: 500; }
+.import-result__details {
+  margin-top: 10px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 8px 10px;
+  background: var(--no-bg);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--no);
+}
+
 @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes modalIn {
   from { opacity: 0; transform: translateY(8px) scale(0.98); }
