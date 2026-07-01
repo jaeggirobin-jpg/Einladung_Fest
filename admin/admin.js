@@ -31,8 +31,6 @@ const guestModal   = document.getElementById('guest-modal');
 const guestForm    = document.getElementById('guest-form');
 const guestTitle   = document.getElementById('guest-modal-title');
 const gId          = document.getElementById('g-id');
-const gVorname     = document.getElementById('g-vorname');
-const gNachname    = document.getElementById('g-nachname');
 const gEmail       = document.getElementById('g-email');
 const gMax         = document.getElementById('g-max');
 const guestSaveBtn = document.getElementById('guest-save-btn');
@@ -121,13 +119,11 @@ guestForm.addEventListener('submit', async (e) => {
   hideGuestError();
   const payload = {
     id:       gId.value || undefined,
-    vorname:  gVorname.value.trim(),
-    nachname: gNachname.value.trim(),
     email:    gEmail.value.trim().toLowerCase(),
     max_begleitpersonen: parseInt(gMax.value, 10) || 0
   };
-  if (!payload.vorname || !payload.nachname || !payload.email) {
-    return showGuestError('Bitte Vorname, Nachname und E-Mail angeben.');
+  if (!payload.email) {
+    return showGuestError('Bitte eine E-Mail-Adresse angeben.');
   }
   guestSaveBtn.disabled = true;
   guestSaveBtn.textContent = 'Speichern…';
@@ -231,11 +227,9 @@ function hideImportError()    { importError.hidden = true; importError.textConte
 
 function renderPreview(rows) {
   importCount.textContent = `${rows.length} ${rows.length === 1 ? 'Zeile' : 'Zeilen'} erkannt`;
-  const head = `<thead><tr><th>Vorname</th><th>Nachname</th><th>E-Mail</th><th class="num">Max BP</th></tr></thead>`;
+  const head = `<thead><tr><th>E-Mail</th><th class="num">Max BP</th></tr></thead>`;
   const body = '<tbody>' + rows.map(r => `
-    <tr${!r.vorname || !r.nachname || !r.email ? ' class="row-error"' : ''}>
-      <td>${esc(r.vorname)}</td>
-      <td>${esc(r.nachname)}</td>
+    <tr${!r.email ? ' class="row-error"' : ''}>
       <td>${esc(r.email)}</td>
       <td class="num">${r.max_begleitpersonen}</td>
     </tr>
@@ -296,13 +290,11 @@ function parseCsv(text) {
     }
     return -1;
   };
-  const iVor  = findCol(['vorname', 'firstname', 'first name']);
-  const iNach = findCol(['nachname', 'name', 'lastname', 'last name', 'familienname']);
   const iMail = findCol(['e-mail', 'email', 'mail', 'e-mail-adresse']);
   const iMax  = findCol(['max begleitpersonen', 'begleitpersonen', 'max bp', 'max', 'begleitung']);
 
-  if (iVor < 0 || iNach < 0 || iMail < 0) {
-    throw new Error('Spalten Vorname, Nachname und E-Mail sind Pflicht. Bitte die Vorlage nutzen.');
+  if (iMail < 0) {
+    throw new Error('Spalte E-Mail ist Pflicht. Bitte die Vorlage nutzen.');
   }
 
   return lines.slice(1).map(parseRow).map(row => {
@@ -310,12 +302,10 @@ function parseCsv(text) {
     if (isNaN(max) || max < 0) max = 0;
     if (max > 10) max = 10;
     return {
-      vorname:  row[iVor]  || '',
-      nachname: row[iNach] || '',
       email:    (row[iMail] || '').toLowerCase(),
       max_begleitpersonen: max
     };
-  }).filter(r => r.vorname || r.nachname || r.email);
+  }).filter(r => r.email);
 }
 
 confirmBtn.addEventListener('click', async () => {
@@ -357,8 +347,6 @@ function openGuestModal(id) {
     if (!row) return;
     guestTitle.textContent = 'Gast bearbeiten';
     gId.value       = row.id;
-    gVorname.value  = row.vorname || '';
-    gNachname.value = row.nachname || '';
     gEmail.value    = row.email || '';
     gMax.value      = String(row.max_begleitpersonen ?? 0);
   } else {
@@ -368,7 +356,7 @@ function openGuestModal(id) {
     gMax.value = '0';
   }
   guestModal.hidden = false;
-  setTimeout(() => gVorname.focus(), 50);
+  setTimeout(() => gEmail.focus(), 50);
 }
 
 function closeGuestModal() {
@@ -481,10 +469,13 @@ function rowHtml(r) {
   const bpNames = isJa && bpList.length
     ? `<div class="row-subline">+ ${bpList.map(p => esc(`${p.vorname || ''} ${p.nachname || ''}`.trim())).join(', ')}</div>`
     : '';
+  const nameCell = (r.vorname || r.nachname)
+    ? `<strong>${esc(r.vorname)}</strong> ${esc(r.nachname)}`
+    : `<em class="row-placeholder">– noch nicht angegeben –</em>`;
   return `
     <tr data-id="${esc(r.id)}">
       <td>${badge}</td>
-      <td><strong>${esc(r.vorname)}</strong> ${esc(r.nachname)}${bpNames}</td>
+      <td>${nameCell}${bpNames}</td>
       <td>${esc(r.email)}</td>
       <td class="num">${r.max_begleitpersonen ?? 0}</td>
       <td class="num">${isJa ? personen : '–'}</td>

@@ -350,6 +350,16 @@ body::after {
 
 .field { margin-bottom: 8px; }
 
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.field-pair .field { margin-bottom: 8px; }
+@media (max-width: 420px) {
+  .field-pair { grid-template-columns: 1fr; gap: 0; }
+}
+
 .field label {
   display: block;
   color: rgba(253, 250, 243, 0.7);

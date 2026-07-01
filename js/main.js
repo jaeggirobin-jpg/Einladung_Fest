@@ -8,7 +8,8 @@ const emailBtn     = document.getElementById('email-btn');
 const emailError   = document.getElementById('email-error');
 
 const form         = document.getElementById('anmeldung-form');
-const guestName    = document.getElementById('guest-name');
+const guestVorname = document.getElementById('guest-vorname');
+const guestNachname = document.getElementById('guest-nachname');
 const begleitField = document.getElementById('begleit-field');
 const begleitSel   = document.getElementById('anzahl_begleitpersonen');
 const begleitNames = document.getElementById('begleit-names');
@@ -67,7 +68,9 @@ emailForm.addEventListener('submit', async (e) => {
 function enterFormStep() {
   emailForm.hidden = true;
 
-  guestName.textContent = `${currentGuest.vorname} ${currentGuest.nachname}`;
+  // Falls Gast schon einmal geantwortet hat: Namen vorbefüllen
+  guestVorname.value  = currentGuest.vorname  || '';
+  guestNachname.value = currentGuest.nachname || '';
 
   // Begleit-Dropdown nur wenn erlaubt
   const max = currentGuest.max_begleitpersonen || 0;
@@ -87,6 +90,7 @@ function enterFormStep() {
 
   form.hidden = false;
   form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  setTimeout(() => guestVorname.focus(), 100);
 }
 
 function renderBegleitNameFields(count, existing = []) {
@@ -179,9 +183,14 @@ form.addEventListener('submit', async (e) => {
   hideError();
 
   const status = statusInput.value === 'abgemeldet' ? 'abgemeldet' : 'angemeldet';
+  const vorname  = guestVorname.value.trim();
+  const nachname = guestNachname.value.trim();
   const begleitN = status === 'abgemeldet' ? 0 : (parseInt(begleitSel.value, 10) || 0);
   const begleitpersonen = status === 'angemeldet' ? collectBegleitPersonen() : [];
 
+  if (!vorname || !nachname) {
+    return showError('Bitte Vor- und Nachnamen eingeben.');
+  }
   if (status === 'angemeldet' && begleitN > 0) {
     if (begleitpersonen.length !== begleitN || begleitpersonen.some(p => !p.vorname || !p.nachname)) {
       return showError('Bitte Vor- und Nachname für jede Begleitperson angeben.');
@@ -190,6 +199,8 @@ form.addEventListener('submit', async (e) => {
 
   const payload = {
     email:   currentGuest.email,
+    vorname,
+    nachname,
     status,
     anzahl_begleitpersonen: String(begleitN),
     begleitpersonen,

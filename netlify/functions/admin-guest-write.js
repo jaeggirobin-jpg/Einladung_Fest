@@ -22,26 +22,23 @@ export async function handler(event) {
   catch { return resp(400, { error: 'Ungültige Anfrage' }); }
 
   const id       = String(data.id || '').trim();
-  const vorname  = String(data.vorname  || '').trim().slice(0, 100);
-  const nachname = String(data.nachname || '').trim().slice(0, 100);
   const email    = String(data.email    || '').trim().toLowerCase().slice(0, 200);
 
   let max = parseInt(data.max_begleitpersonen, 10);
   if (isNaN(max) || max < 0) max = 0;
   if (max > 10) max = 10;
 
-  if (!vorname || !nachname || !email) {
-    return resp(400, { error: 'Bitte Vorname, Nachname und E-Mail angeben.' });
+  if (!email) {
+    return resp(400, { error: 'Bitte eine E-Mail-Adresse angeben.' });
   }
   if (!EMAIL_RE.test(email)) {
     return resp(400, { error: 'Bitte eine gültige E-Mail-Adresse angeben.' });
   }
 
-  // Update bestehender Gast
+  // Update bestehender Gast (nur E-Mail und Max Begleit – Name wird nicht überschrieben)
   if (id) {
     if (!/^[0-9a-f-]{36}$/i.test(id)) return resp(400, { error: 'Ungültige ID' });
 
-    // E-Mail-Konflikt prüfen
     const { data: clash } = await supabase
       .from('anmeldungen')
       .select('id')
@@ -52,7 +49,7 @@ export async function handler(event) {
 
     const { error } = await supabase
       .from('anmeldungen')
-      .update({ vorname, nachname, email, max_begleitpersonen: max })
+      .update({ email, max_begleitpersonen: max })
       .eq('id', id);
     if (error) {
       console.error('Supabase update error:', error);
@@ -61,12 +58,12 @@ export async function handler(event) {
     return resp(200, { ok: true, mode: 'updated' });
   }
 
-  // Neuer Gast
+  // Neuer Gast – Name bleibt initial leer, wird vom Gast selbst gesetzt
   const { error } = await supabase
     .from('anmeldungen')
     .insert({
-      vorname,
-      nachname,
+      vorname: '',
+      nachname: '',
       email,
       max_begleitpersonen: max,
       status: 'offen',

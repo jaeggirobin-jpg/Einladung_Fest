@@ -53,7 +53,18 @@
 
       <form id="anmeldung-form" class="form" novalidate hidden>
 
-        <p class="greeting">Guten Tag, <span id="guest-name"></span></p>
+        <p class="greeting" id="guest-greeting">E-Mail bestätigt <span aria-hidden="true">✓</span></p>
+
+        <div class="field-pair">
+          <div class="field">
+            <label for="guest-vorname">Vorname</label>
+            <input type="text" id="guest-vorname" name="guest-vorname" required autocomplete="given-name" maxlength="100">
+          </div>
+          <div class="field">
+            <label for="guest-nachname">Nachname</label>
+            <input type="text" id="guest-nachname" name="guest-nachname" required autocomplete="family-name" maxlength="100">
+          </div>
+        </div>
 
         <div class="intent">
           <p class="intent__question">Kannst du teilnehmen?</p>

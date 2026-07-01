@@ -20,7 +20,9 @@ export async function handler(event) {
 
   if (data.website) return resp(200, { ok: true });
 
-  const email  = String(data.email || '').trim().toLowerCase().slice(0, 200);
+  const email    = String(data.email    || '').trim().toLowerCase().slice(0, 200);
+  const vorname  = String(data.vorname  || '').trim().slice(0, 100);
+  const nachname = String(data.nachname || '').trim().slice(0, 100);
   const status = data.status === 'abgemeldet' ? 'abgemeldet' : 'angemeldet';
 
   let begleit = parseInt(data.anzahl_begleitpersonen, 10);
@@ -38,6 +40,9 @@ export async function handler(event) {
   if (!email || !EMAIL_RE.test(email)) {
     return resp(400, { error: 'Bitte eine gültige E-Mail-Adresse angeben.' });
   }
+  if (!vorname || !nachname) {
+    return resp(400, { error: 'Bitte Vor- und Nachnamen angeben.' });
+  }
 
   if (status === 'angemeldet' && begleit > 0) {
     if (begleitpersonen.length !== begleit || begleitpersonen.some(p => !p.vorname || !p.nachname)) {
@@ -48,7 +53,7 @@ export async function handler(event) {
   // Gast muss in der Liste sein
   const { data: gast, error: lookupError } = await supabase
     .from('anmeldungen')
-    .select('id, vorname, nachname, max_begleitpersonen')
+    .select('id, max_begleitpersonen')
     .eq('email', email)
     .maybeSingle();
 
@@ -67,6 +72,8 @@ export async function handler(event) {
   const { error: updateError } = await supabase
     .from('anmeldungen')
     .update({
+      vorname,
+      nachname,
       anzahl_begleitpersonen: begleit,
       begleitpersonen,
       status,
@@ -81,7 +88,7 @@ export async function handler(event) {
 
   if (status === 'angemeldet') {
     try {
-      await sendBestaetigung({ vorname: gast.vorname, email, begleit });
+      await sendBestaetigung({ vorname, email, begleit });
       await supabase.from('anmeldungen')
         .update({ bestaetigung_gesendet: true })
         .eq('id', gast.id);
@@ -90,7 +97,7 @@ export async function handler(event) {
     }
   }
 
-  return resp(200, { ok: true, status, vorname: gast.vorname, nachname: gast.nachname });
+  return resp(200, { ok: true, status, vorname, nachname });
 }
 
 async function sendBestaetigung({ vorname, email, begleit }) {

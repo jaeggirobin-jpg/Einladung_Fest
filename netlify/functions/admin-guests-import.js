@@ -31,19 +31,17 @@ export async function handler(event) {
 
   for (let i = 0; i < guests.length; i++) {
     const g = guests[i];
-    const vorname  = String(g.vorname  || '').trim().slice(0, 100);
-    const nachname = String(g.nachname || '').trim().slice(0, 100);
     const email    = String(g.email    || '').trim().toLowerCase().slice(0, 200);
     let max = parseInt(g.max_begleitpersonen, 10);
     if (isNaN(max) || max < 0) max = 0;
     if (max > 10) max = 10;
 
-    if (!vorname || !nachname || !email) {
-      errors.push({ zeile: i + 1, name: `${vorname} ${nachname}`, grund: 'Vorname, Nachname und E-Mail sind Pflicht.' });
+    if (!email) {
+      errors.push({ zeile: i + 1, name: '', grund: 'E-Mail ist Pflicht.' });
       continue;
     }
     if (!EMAIL_RE.test(email)) {
-      errors.push({ zeile: i + 1, name: `${vorname} ${nachname}`, grund: `Ungültige E-Mail: ${email}` });
+      errors.push({ zeile: i + 1, name: email, grund: `Ungültige E-Mail: ${email}` });
       continue;
     }
 
@@ -56,26 +54,26 @@ export async function handler(event) {
     if (existing) {
       const { error: upErr } = await supabase
         .from('anmeldungen')
-        .update({ vorname, nachname, max_begleitpersonen: max })
+        .update({ max_begleitpersonen: max })
         .eq('id', existing.id);
       if (upErr) {
-        errors.push({ zeile: i + 1, name: `${vorname} ${nachname}`, grund: 'Aktualisieren fehlgeschlagen.' });
+        errors.push({ zeile: i + 1, name: email, grund: 'Aktualisieren fehlgeschlagen.' });
       } else {
-        updated.push(`${vorname} ${nachname}`);
+        updated.push(email);
       }
     } else {
       const { error: insErr } = await supabase
         .from('anmeldungen')
         .insert({
-          vorname, nachname, email,
+          vorname: '', nachname: '', email,
           max_begleitpersonen: max,
           status: 'offen',
           anzahl_begleitpersonen: 0
         });
       if (insErr) {
-        errors.push({ zeile: i + 1, name: `${vorname} ${nachname}`, grund: 'Anlegen fehlgeschlagen.' });
+        errors.push({ zeile: i + 1, name: email, grund: 'Anlegen fehlgeschlagen.' });
       } else {
-        created.push(`${vorname} ${nachname}`);
+        created.push(email);
       }
     }
   }
