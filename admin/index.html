@@ -86,6 +86,14 @@
         </div>
         <div class="toolbar__actions">
           <input type="search" id="search-input" placeholder="Suche…">
+          <button type="button" id="delete-all-btn" class="btn-ghost btn-ghost--danger" title="Alle Gäste löschen">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6M14 11v6"></path>
+            </svg>
+            Alle löschen
+          </button>
           <button type="button" id="import-btn" class="btn-ghost">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -140,6 +148,28 @@
       <div class="modal__buttons">
         <button type="button" class="btn-ghost" data-close="1">Abbrechen</button>
         <button type="button" id="confirm-delete-btn" class="btn-danger">Ja, löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-all-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="delete-all-title">
+    <div class="modal__backdrop" data-close="1"></div>
+    <div class="modal__card">
+      <h3 id="delete-all-title" class="modal__title">Alle Gäste löschen?</h3>
+      <p class="modal__text">
+        Damit werden <strong id="delete-all-count">alle</strong> Einträge unwiderruflich gelöscht –
+        inklusive aller Zusagen, Absagen und offenen Einladungen.
+        <br><br>
+        Diese Aktion kann <strong>nicht</strong> rückgängig gemacht werden.
+      </p>
+      <div class="modal__field">
+        <label for="delete-all-confirm">Tippe zum Bestätigen <strong>LÖSCHEN</strong> ein:</label>
+        <input type="text" id="delete-all-confirm" autocomplete="off" autocapitalize="characters">
+      </div>
+      <p id="delete-all-error" class="modal__error" hidden></p>
+      <div class="modal__buttons">
+        <button type="button" class="btn-ghost" data-close="1">Abbrechen</button>
+        <button type="button" id="delete-all-run-btn" class="btn-danger" disabled>Endgültig löschen</button>
       </div>
     </div>
   </div>
