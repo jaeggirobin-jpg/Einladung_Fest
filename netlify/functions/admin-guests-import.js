@@ -6,6 +6,7 @@ const supabase = createClient(
 );
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const CHUNK = 100;
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') return resp(405, { error: 'Methode nicht erlaubt' });
@@ -23,15 +24,15 @@ export async function handler(event) {
 
   const guests = Array.isArray(payload.guests) ? payload.guests : [];
   if (guests.length === 0) return resp(400, { error: 'Keine Gäste zum Importieren.' });
-  if (guests.length > 500) return resp(400, { error: 'Maximal 500 Gäste pro Import.' });
+  if (guests.length > 1000) return resp(400, { error: 'Maximal 1000 Gäste pro Import.' });
 
-  const created = [];
-  const updated = [];
-  const errors  = [];
+  const errors = [];
+  const seen = new Map();
 
+  // Pre-Validierung + Dedup (im Speicher, sehr schnell)
   for (let i = 0; i < guests.length; i++) {
     const g = guests[i];
-    const email    = String(g.email    || '').trim().toLowerCase().slice(0, 200);
+    const email = String(g.email || '').trim().toLowerCase().slice(0, 200);
     let max = parseInt(g.max_begleitpersonen, 10);
     if (isNaN(max) || max < 0) max = 0;
     if (max > 10) max = 10;
@@ -44,43 +45,87 @@ export async function handler(event) {
       errors.push({ zeile: i + 1, name: email, grund: `Ungültige E-Mail: ${email}` });
       continue;
     }
+    // Bei Duplikat innerhalb der CSV: letzten max_begleitpersonen-Wert behalten
+    seen.set(email, { email, max_begleitpersonen: max });
+  }
 
-    const { data: existing } = await supabase
+  const validGuests = [...seen.values()];
+  if (validGuests.length === 0) {
+    return resp(200, { ok: true, counts: { created: 0, updated: 0, errors: errors.length }, errors });
+  }
+
+  // Bulk-Lookup: welche E-Mails existieren schon?  (max 4 Queries für 400 Gäste)
+  const existingMap = new Map();
+  for (let i = 0; i < validGuests.length; i += CHUNK) {
+    const chunkEmails = validGuests.slice(i, i + CHUNK).map(g => g.email);
+    const { data, error } = await supabase
       .from('anmeldungen')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+      .select('id, email')
+      .in('email', chunkEmails);
+    if (error) {
+      console.error('Supabase lookup error:', error);
+      return resp(500, { error: 'Prüfung der bestehenden Einträge fehlgeschlagen.' });
+    }
+    for (const row of data) existingMap.set(row.email, row.id);
+  }
 
-    if (existing) {
-      const { error: upErr } = await supabase
+  // Split in NEU vs. UPDATE
+  const toInsert = [];
+  const toUpdate = [];
+  for (const g of validGuests) {
+    if (existingMap.has(g.email)) {
+      toUpdate.push({ id: existingMap.get(g.email), max_begleitpersonen: g.max_begleitpersonen });
+    } else {
+      toInsert.push({
+        vorname: '',
+        nachname: '',
+        email: g.email,
+        max_begleitpersonen: g.max_begleitpersonen,
+        status: 'offen',
+        anzahl_begleitpersonen: 0
+      });
+    }
+  }
+
+  // Bulk-INSERT (chunked, max 100 pro Query)
+  let created = 0;
+  for (let i = 0; i < toInsert.length; i += CHUNK) {
+    const chunk = toInsert.slice(i, i + CHUNK);
+    const { error } = await supabase.from('anmeldungen').insert(chunk);
+    if (error) {
+      console.error('Insert error:', error);
+      chunk.forEach(g => errors.push({ zeile: 0, name: g.email, grund: 'Anlegen fehlgeschlagen: ' + error.message }));
+    } else {
+      created += chunk.length;
+    }
+  }
+
+  // Bulk-UPDATE gruppiert nach max_begleitpersonen (max ~11 Queries)
+  let updated = 0;
+  const byMax = new Map();
+  for (const u of toUpdate) {
+    if (!byMax.has(u.max_begleitpersonen)) byMax.set(u.max_begleitpersonen, []);
+    byMax.get(u.max_begleitpersonen).push(u.id);
+  }
+  for (const [max, ids] of byMax) {
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const chunkIds = ids.slice(i, i + CHUNK);
+      const { error } = await supabase
         .from('anmeldungen')
         .update({ max_begleitpersonen: max })
-        .eq('id', existing.id);
-      if (upErr) {
-        errors.push({ zeile: i + 1, name: email, grund: 'Aktualisieren fehlgeschlagen.' });
+        .in('id', chunkIds);
+      if (error) {
+        console.error('Update error:', error);
+        errors.push({ zeile: 0, name: `${chunkIds.length} Einträge`, grund: 'Update fehlgeschlagen: ' + error.message });
       } else {
-        updated.push(email);
-      }
-    } else {
-      const { error: insErr } = await supabase
-        .from('anmeldungen')
-        .insert({
-          vorname: '', nachname: '', email,
-          max_begleitpersonen: max,
-          status: 'offen',
-          anzahl_begleitpersonen: 0
-        });
-      if (insErr) {
-        errors.push({ zeile: i + 1, name: email, grund: 'Anlegen fehlgeschlagen.' });
-      } else {
-        created.push(email);
+        updated += chunkIds.length;
       }
     }
   }
 
   return resp(200, {
     ok: true,
-    counts: { created: created.length, updated: updated.length, errors: errors.length },
+    counts: { created, updated, errors: errors.length },
     errors
   });
 }
