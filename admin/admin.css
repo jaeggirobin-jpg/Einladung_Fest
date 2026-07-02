@@ -599,6 +599,62 @@ html, body {
   background: var(--no-bg);
   color: var(--no);
 }
+.preview-table .row-warn td {
+  background: #FBF3E0;
+  color: #9A6B18;
+}
+.preview-table .preview-icon {
+  width: 22px;
+  text-align: center;
+  font-size: 12px;
+}
+
+/* --- Import-Warnungen --------------------------------------------- */
+
+.import-warnings {
+  margin: 12px 0 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 13px;
+}
+.import-warnings__head {
+  padding: 10px 14px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.import-warnings__head--error {
+  background: var(--no-bg);
+  color: var(--no);
+}
+.import-warnings__head--warn {
+  background: #FBF3E0;
+  color: #9A6B18;
+  border-top: 1px solid var(--border);
+}
+.import-warnings__list {
+  margin: 0;
+  padding: 8px 14px 12px 30px;
+  max-height: 160px;
+  overflow-y: auto;
+  list-style: disc;
+}
+.import-warnings__list li {
+  margin: 4px 0;
+  line-height: 1.5;
+  color: var(--text);
+}
+.import-warnings__list code {
+  background: rgba(0,0,0,0.05);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.import-warnings .iw-zeile {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+}
 
 .import-result {
   background: var(--cream);

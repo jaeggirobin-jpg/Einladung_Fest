@@ -32,7 +32,7 @@ export async function handler(event) {
   // Pre-Validierung + Dedup (im Speicher, sehr schnell)
   for (let i = 0; i < guests.length; i++) {
     const g = guests[i];
-    const email = String(g.email || '').trim().toLowerCase().slice(0, 200);
+    const email = String(g.email || '').replace(/\s+/g, '').toLowerCase().slice(0, 200);
     let max = parseInt(g.max_begleitpersonen, 10);
     if (isNaN(max) || max < 0) max = 0;
     if (max > 10) max = 10;

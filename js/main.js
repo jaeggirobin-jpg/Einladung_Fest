@@ -35,7 +35,7 @@ emailForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideEmailError();
 
-  const email = emailInput.value.trim().toLowerCase();
+  const email = emailInput.value.replace(/\s+/g, '').toLowerCase();
   if (!email || !EMAIL_RE.test(email)) {
     return showEmailError('Bitte eine gültige E-Mail-Adresse angeben.');
   }

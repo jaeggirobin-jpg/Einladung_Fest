@@ -14,7 +14,7 @@ export async function handler(event) {
   try { data = JSON.parse(event.body); }
   catch { return resp(400, { error: 'Ungültige Anfrage' }); }
 
-  const email = String(data.email || '').trim().toLowerCase().slice(0, 200);
+  const email = String(data.email || '').replace(/\s+/g, '').toLowerCase().slice(0, 200);
   if (!email || !EMAIL_RE.test(email)) {
     return resp(400, { error: 'Bitte eine gültige E-Mail-Adresse angeben.' });
   }

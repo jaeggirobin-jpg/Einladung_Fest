@@ -20,7 +20,7 @@ export async function handler(event) {
 
   if (data.website) return resp(200, { ok: true });
 
-  const email    = String(data.email    || '').trim().toLowerCase().slice(0, 200);
+  const email    = String(data.email    || '').replace(/\s+/g, '').toLowerCase().slice(0, 200);
   const vorname  = String(data.vorname  || '').trim().slice(0, 100);
   const nachname = String(data.nachname || '').trim().slice(0, 100);
   const status = data.status === 'abgemeldet' ? 'abgemeldet' : 'angemeldet';

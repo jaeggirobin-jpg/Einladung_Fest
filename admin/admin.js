@@ -52,8 +52,10 @@ const previewTable   = document.getElementById('preview-table');
 const importError    = document.getElementById('import-error');
 const importResult   = document.getElementById('import-result');
 const importRunBtn   = document.getElementById('import-run-btn');
+const importWarnings = document.getElementById('import-warnings');
 
 let parsedGuests = [];
+let importIssues = { errors: [], warnings: [] };
 
 let pendingDeleteId = null;
 
@@ -222,6 +224,7 @@ importFile.addEventListener('change', async () => {
   hideImportError();
   importResult.hidden = true;
   importPreview.hidden = true;
+  importWarnings.hidden = true;
   importRunBtn.disabled = true;
   const file = importFile.files[0];
   if (!file) return;
@@ -229,17 +232,143 @@ importFile.addEventListener('change', async () => {
     const text = await file.text();
     parsedGuests = parseCsv(text);
     if (parsedGuests.length === 0) throw new Error('Keine Datenzeilen gefunden.');
-    renderPreview(parsedGuests);
+    importIssues = analyzeGuests(parsedGuests);
+    renderWarnings(importIssues);
+    renderPreview(parsedGuests, importIssues);
     importPreview.hidden = false;
-    importRunBtn.disabled = false;
+    // Import bleibt möglich, auch bei Warnungen. Nur wenn ALLE Zeilen harte
+    // Fehler haben, wird der Button gesperrt.
+    const importable = parsedGuests.length - importIssues.errors.length;
+    importRunBtn.disabled = importable <= 0;
   } catch (err) {
     parsedGuests = [];
     showImportError(err.message);
   }
 });
 
+/* --- E-Mail-Plausibilitätsprüfung --------------------------------- */
+
+const EMAIL_STRICT = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// Häufige Tippfehler bei Domains (Schweiz + international)
+const DOMAIN_TYPOS = {
+  'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gmail.co': 'gmail.com',
+  'gmaill.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmail.con': 'gmail.com',
+  'gmail.cm': 'gmail.com', 'gmailcom': 'gmail.com', 'googlemail.co': 'googlemail.com',
+  'hotmial.com': 'hotmail.com', 'hotmai.com': 'hotmail.com', 'hotmail.co': 'hotmail.com',
+  'hotmail.con': 'hotmail.com', 'hotmall.com': 'hotmail.com', 'hotmaill.com': 'hotmail.com',
+  'outlok.com': 'outlook.com', 'outlook.com': 'outlook.com', 'outlook.co': 'outlook.com',
+  'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'yahoo.co': 'yahoo.com',
+  'bluewin.c': 'bluewin.ch', 'bluewin.com': 'bluewin.ch', 'blueiwn.ch': 'bluewin.ch',
+  'gmx.c': 'gmx.ch', 'gmx.co': 'gmx.ch', 'gmx.con': 'gmx.net',
+  'sunrise.c': 'sunrise.ch', 'swissonline.c': 'swissonline.ch',
+  'hispeed.c': 'hispeed.ch', 'icloud.co': 'icloud.com', 'iclould.com': 'icloud.com'
+};
+
+// Gängige TLDs – alles andere wird als "ungewöhnlich" markiert (nur Warnung)
+const KNOWN_TLDS = new Set([
+  'ch','com','net','org','de','at','li','fr','it','eu','info','biz',
+  'io','me','email','name','online','shop','swiss','edu','gov'
+]);
+
+function analyzeGuests(rows) {
+  const errors = [];   // Zeilen, die NICHT importiert werden können
+  const warnings = []; // Zeilen, die auffällig sind, aber importierbar
+  const seen = new Map();
+
+  rows.forEach((r) => {
+    const email = r.email;
+    const label = r.raw || '(leer)';
+
+    if (!email) {
+      errors.push({ zeile: r.zeile, email: label, grund: 'E-Mail fehlt.' });
+      r._error = true;
+      return;
+    }
+
+    // Harte Formatfehler
+    if ((email.match(/@/g) || []).length !== 1) {
+      errors.push({ zeile: r.zeile, email, grund: 'Ungültig: E-Mail muss genau ein @ enthalten.' });
+      r._error = true;
+      return;
+    }
+    if (!EMAIL_STRICT.test(email)) {
+      errors.push({ zeile: r.zeile, email, grund: 'Ungültiges Format (fehlender Punkt/Domain oder ungültige Zeichen).' });
+      r._error = true;
+      return;
+    }
+    if (/\.\./.test(email) || /^\./.test(email.split('@')[0]) || /\.$/.test(email.split('@')[0])) {
+      errors.push({ zeile: r.zeile, email, grund: 'Ungültig: doppelter oder falsch platzierter Punkt.' });
+      r._error = true;
+      return;
+    }
+
+    const domain = email.split('@')[1];
+    const tld = domain.split('.').pop();
+
+    // --- ab hier nur Warnungen (Import bleibt möglich) ---
+
+    // Duplikat innerhalb der CSV
+    if (seen.has(email)) {
+      warnings.push({ zeile: r.zeile, email, grund: `Doppelt in der Datei (auch Zeile ${seen.get(email)}). Es wird nur ein Eintrag angelegt.` });
+      r._warn = true;
+    } else {
+      seen.set(email, r.zeile);
+    }
+
+    // Domain-Tippfehler
+    if (DOMAIN_TYPOS[domain]) {
+      warnings.push({ zeile: r.zeile, email, grund: `Möglicher Tippfehler in der Domain – meintest du "${DOMAIN_TYPOS[domain]}"?` });
+      r._warn = true;
+    } else if (!KNOWN_TLDS.has(tld)) {
+      warnings.push({ zeile: r.zeile, email, grund: `Ungewöhnliche Endung ".${tld}" – bitte prüfen.` });
+      r._warn = true;
+    }
+
+    // Umlaute / Sonderzeichen (in CH-Mailadressen sehr selten)
+    if (/[äöüàéèç]/i.test(email)) {
+      warnings.push({ zeile: r.zeile, email, grund: 'Enthält Umlaut/Akzent – bitte prüfen.' });
+      r._warn = true;
+    }
+  });
+
+  return { errors, warnings };
+}
+
+function renderWarnings({ errors, warnings }) {
+  if (errors.length === 0 && warnings.length === 0) {
+    importWarnings.hidden = true;
+    importWarnings.innerHTML = '';
+    return;
+  }
+  let html = '';
+  if (errors.length > 0) {
+    html += `<div class="import-warnings__head import-warnings__head--error">
+      ⚠ ${errors.length} ${errors.length === 1 ? 'Zeile wird' : 'Zeilen werden'} übersprungen (ungültige E-Mail)</div>`;
+    html += '<ul class="import-warnings__list">' + errors.map(e =>
+      `<li><span class="iw-zeile">Zeile ${e.zeile}</span> <code>${esc(e.email)}</code> – ${esc(e.grund)}</li>`
+    ).join('') + '</ul>';
+  }
+  if (warnings.length > 0) {
+    html += `<div class="import-warnings__head import-warnings__head--warn">
+      ⚠ ${warnings.length} ${warnings.length === 1 ? 'Auffälligkeit' : 'Auffälligkeiten'} – bitte prüfen (Import trotzdem möglich)</div>`;
+    html += '<ul class="import-warnings__list">' + warnings.map(w =>
+      `<li><span class="iw-zeile">Zeile ${w.zeile}</span> <code>${esc(w.email)}</code> – ${esc(w.grund)}</li>`
+    ).join('') + '</ul>';
+  }
+  importWarnings.innerHTML = html;
+  importWarnings.hidden = false;
+}
+
 importRunBtn.addEventListener('click', async () => {
   if (parsedGuests.length === 0) return;
+  // Nur gültige Zeilen senden (Fehler-Zeilen wurden im Dialog angezeigt)
+  const validGuests = parsedGuests
+    .filter(g => !g._error)
+    .map(g => ({ email: g.email, max_begleitpersonen: g.max_begleitpersonen }));
+  if (validGuests.length === 0) {
+    return showImportError('Keine gültigen E-Mail-Adressen zum Importieren.');
+  }
   importRunBtn.disabled = true;
   importRunBtn.textContent = 'Importiere…';
   hideImportError();
@@ -248,7 +377,7 @@ importRunBtn.addEventListener('click', async () => {
     const res = await fetch('/.netlify/functions/admin-guests-import', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ guests: parsedGuests })
+      body: JSON.stringify({ guests: validGuests })
     });
     const out = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(out.error || `Fehler ${res.status}`);
@@ -266,30 +395,42 @@ function openImportModal() {
   importFile.value = '';
   importPreview.hidden = true;
   importResult.hidden = true;
+  importWarnings.hidden = true;
+  importWarnings.innerHTML = '';
   importRunBtn.disabled = true;
   importRunBtn.textContent = 'Importieren';
   hideImportError();
   parsedGuests = [];
+  importIssues = { errors: [], warnings: [] };
   importModal.hidden = false;
 }
 
 function closeImportModal() {
   importModal.hidden = true;
   parsedGuests = [];
+  importIssues = { errors: [], warnings: [] };
 }
 
 function showImportError(msg) { importError.textContent = msg; importError.hidden = false; }
 function hideImportError()    { importError.hidden = true; importError.textContent = ''; }
 
-function renderPreview(rows) {
-  importCount.textContent = `${rows.length} ${rows.length === 1 ? 'Zeile' : 'Zeilen'} erkannt`;
-  const head = `<thead><tr><th>E-Mail</th><th class="num">Max BP</th></tr></thead>`;
-  const body = '<tbody>' + rows.map(r => `
-    <tr${!r.email ? ' class="row-error"' : ''}>
-      <td>${esc(r.email)}</td>
+function renderPreview(rows, issues) {
+  const skip = issues?.errors.length || 0;
+  const ok = rows.length - skip;
+  importCount.textContent = skip > 0
+    ? `${rows.length} Zeilen erkannt · ${ok} werden importiert, ${skip} übersprungen`
+    : `${rows.length} ${rows.length === 1 ? 'Zeile' : 'Zeilen'} erkannt`;
+  const head = `<thead><tr><th></th><th>E-Mail</th><th class="num">Max BP</th></tr></thead>`;
+  const body = '<tbody>' + rows.map(r => {
+    const cls = r._error ? ' class="row-error"' : (r._warn ? ' class="row-warn"' : '');
+    const icon = r._error ? '✗' : (r._warn ? '⚠' : '');
+    return `
+    <tr${cls}>
+      <td class="preview-icon">${icon}</td>
+      <td>${esc(r.email || r.raw)}</td>
       <td class="num">${r.max_begleitpersonen}</td>
-    </tr>
-  `).join('') + '</tbody>';
+    </tr>`;
+  }).join('') + '</tbody>';
   previewTable.innerHTML = head + body;
 }
 
@@ -353,15 +494,22 @@ function parseCsv(text) {
     throw new Error('Spalte E-Mail ist Pflicht. Bitte die Vorlage nutzen.');
   }
 
-  return lines.slice(1).map(parseRow).map(row => {
+  return lines.slice(1).map(parseRow).map((row, idx) => {
     let max = iMax >= 0 ? parseInt(row[iMax], 10) : 0;
     if (isNaN(max) || max < 0) max = 0;
     if (max > 10) max = 10;
     return {
-      email:    (row[iMail] || '').toLowerCase(),
+      email:    normalizeEmail(row[iMail] || ''),
+      raw:      (row[iMail] || '').trim(),
+      zeile:    idx + 2, // +1 für Header, +1 für 1-basiert
       max_begleitpersonen: max
     };
-  }).filter(r => r.email);
+  }).filter(r => r.email || r.raw);
+}
+
+// E-Mail vereinheitlichen: trim, alle Leerzeichen (auch innen) raus, lowercase
+function normalizeEmail(v) {
+  return String(v).replace(/\s+/g, '').toLowerCase();
 }
 
 confirmBtn.addEventListener('click', async () => {
