@@ -179,8 +179,9 @@
     <div class="modal__card modal__card--wide">
       <h3 id="import-modal-title" class="modal__title">Gäste per CSV importieren</h3>
       <p class="modal__text">
-        Wähle eine CSV-Datei mit den Spalten <strong>Vorname, Nachname, E-Mail, Max Begleitpersonen</strong>.
+        Wähle eine CSV-Datei mit den Spalten <strong>E-Mail, Max Begleitpersonen</strong>.
         Bestehende Gäste (gleiche E-Mail) werden aktualisiert, ihre Antwort bleibt erhalten.
+        Alle E-Mail-Adressen werden automatisch in Kleinbuchstaben umgewandelt.
       </p>
       <p class="modal__text">
         <a href="gaesteliste-vorlage.csv" download class="link">Vorlage herunterladen (.csv)</a>
@@ -190,6 +191,8 @@
         <label for="import-file">CSV-Datei</label>
         <input type="file" id="import-file" accept=".csv,text/csv">
       </div>
+
+      <div id="import-warnings" class="import-warnings" hidden></div>
 
       <div id="import-preview" hidden>
         <p class="modal__hint" id="import-count"></p>

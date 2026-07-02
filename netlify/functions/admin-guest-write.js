@@ -22,7 +22,7 @@ export async function handler(event) {
   catch { return resp(400, { error: 'Ungültige Anfrage' }); }
 
   const id       = String(data.id || '').trim();
-  const email    = String(data.email    || '').trim().toLowerCase().slice(0, 200);
+  const email    = String(data.email    || '').replace(/\s+/g, '').toLowerCase().slice(0, 200);
 
   let max = parseInt(data.max_begleitpersonen, 10);
   if (isNaN(max) || max < 0) max = 0;
