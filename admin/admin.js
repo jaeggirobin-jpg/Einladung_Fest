@@ -36,6 +36,13 @@ const gMax         = document.getElementById('g-max');
 const guestSaveBtn = document.getElementById('guest-save-btn');
 const guestFormErr = document.getElementById('guest-form-error');
 
+const deleteAllBtn      = document.getElementById('delete-all-btn');
+const deleteAllModal    = document.getElementById('delete-all-modal');
+const deleteAllCount    = document.getElementById('delete-all-count');
+const deleteAllConfirm  = document.getElementById('delete-all-confirm');
+const deleteAllRunBtn   = document.getElementById('delete-all-run-btn');
+const deleteAllError    = document.getElementById('delete-all-error');
+
 const importBtn      = document.getElementById('import-btn');
 const importModal    = document.getElementById('import-modal');
 const importFile     = document.getElementById('import-file');
@@ -155,7 +162,56 @@ document.addEventListener('keydown', (e) => {
   if (!modal.hidden) closeModal();
   if (!guestModal.hidden) closeGuestModal();
   if (!importModal.hidden) closeImportModal();
+  if (!deleteAllModal.hidden) closeDeleteAllModal();
 });
+
+/* --- Alle Gäste löschen ------------------------------------------ */
+
+deleteAllBtn.addEventListener('click', () => openDeleteAllModal());
+deleteAllModal.addEventListener('click', (e) => { if (e.target.dataset.close) closeDeleteAllModal(); });
+
+deleteAllConfirm.addEventListener('input', () => {
+  deleteAllRunBtn.disabled = deleteAllConfirm.value.trim().toUpperCase() !== 'LÖSCHEN';
+});
+
+deleteAllRunBtn.addEventListener('click', async () => {
+  if (deleteAllConfirm.value.trim().toUpperCase() !== 'LÖSCHEN') return;
+  deleteAllRunBtn.disabled = true;
+  deleteAllRunBtn.textContent = 'Lösche…';
+  hideDeleteAllError();
+  try {
+    const token = sessionStorage.getItem(STORAGE_KEY);
+    const res = await fetch('/.netlify/functions/admin-delete-all', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'LÖSCHEN' })
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || `Fehler ${res.status}`);
+    closeDeleteAllModal();
+    await loadAndRender();
+  } catch (err) {
+    showDeleteAllError(err.message);
+  } finally {
+    deleteAllRunBtn.textContent = 'Endgültig löschen';
+    deleteAllRunBtn.disabled = deleteAllConfirm.value.trim().toUpperCase() !== 'LÖSCHEN';
+  }
+});
+
+function openDeleteAllModal() {
+  deleteAllConfirm.value = '';
+  deleteAllRunBtn.disabled = true;
+  hideDeleteAllError();
+  deleteAllCount.textContent = allRows.length > 0 ? `alle ${allRows.length}` : 'alle';
+  deleteAllModal.hidden = false;
+  setTimeout(() => deleteAllConfirm.focus(), 50);
+}
+function closeDeleteAllModal() {
+  deleteAllModal.hidden = true;
+  deleteAllConfirm.value = '';
+}
+function showDeleteAllError(msg) { deleteAllError.textContent = msg; deleteAllError.hidden = false; }
+function hideDeleteAllError()    { deleteAllError.hidden = true; deleteAllError.textContent = ''; }
 
 /* --- CSV-Import --------------------------------------------------- */
 
