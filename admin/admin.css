@@ -380,7 +380,7 @@ html, body {
   font-style: italic;
 }
 
-.action-col { width: 80px; }
+.action-col { width: 116px; }
 
 .row-actions {
   display: flex;
@@ -411,6 +411,77 @@ html, body {
   color: var(--no);
   background: var(--no-bg);
   border-color: rgba(184, 83, 60, 0.3);
+}
+.action-btn--response:hover {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border-color: rgba(90, 138, 79, 0.35);
+}
+
+/* --- Antwort-erfassen-Modal --------------------------------------- */
+
+.response-intent {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.response-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--cream);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.response-btn:hover { border-color: var(--text-muted); }
+
+.response-btn--yes.is-selected {
+  color: #fff;
+  background: var(--ok);
+  border-color: var(--ok);
+}
+.response-btn--no.is-selected {
+  color: #fff;
+  background: var(--no);
+  border-color: var(--no);
+}
+
+.r-begleit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.r-begleit-person {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.r-begleit-person input {
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.r-begleit-person input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.15);
+}
+@media (max-width: 480px) {
+  .r-begleit-person { grid-template-columns: 1fr; }
 }
 
 /* --- Modal -------------------------------------------------------- */

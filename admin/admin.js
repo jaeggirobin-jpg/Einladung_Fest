@@ -43,6 +43,21 @@ const deleteAllConfirm  = document.getElementById('delete-all-confirm');
 const deleteAllRunBtn   = document.getElementById('delete-all-run-btn');
 const deleteAllError    = document.getElementById('delete-all-error');
 
+const responseModal   = document.getElementById('response-modal');
+const responseForm    = document.getElementById('response-form');
+const rId             = document.getElementById('r-id');
+const rEmail          = document.getElementById('r-email');
+const rStatus         = document.getElementById('r-status');
+const rDetails        = document.getElementById('r-details');
+const rVorname        = document.getElementById('r-vorname');
+const rNachname       = document.getElementById('r-nachname');
+const rBegleitField   = document.getElementById('r-begleit-field');
+const rAnzahl         = document.getElementById('r-anzahl');
+const rBegleitNames   = document.getElementById('r-begleit-names');
+const rBegleitList    = document.getElementById('r-begleit-list');
+const responseSaveBtn = document.getElementById('response-save-btn');
+const responseFormErr = document.getElementById('response-form-error');
+
 const importBtn      = document.getElementById('import-btn');
 const importModal    = document.getElementById('import-modal');
 const importFile     = document.getElementById('import-file');
@@ -115,6 +130,7 @@ tbody.addEventListener('click', (e) => {
   if (!id) return;
   if (e.target.closest('.js-delete')) openDeleteModal(id);
   else if (e.target.closest('.js-edit')) openGuestModal(id);
+  else if (e.target.closest('.js-response')) openResponseModal(id);
 });
 
 addBtn.addEventListener('click', () => openGuestModal(null));
@@ -165,7 +181,171 @@ document.addEventListener('keydown', (e) => {
   if (!guestModal.hidden) closeGuestModal();
   if (!importModal.hidden) closeImportModal();
   if (!deleteAllModal.hidden) closeDeleteAllModal();
+  if (!responseModal.hidden) closeResponseModal();
 });
+
+/* --- Antwort erfassen (Admin manuell) ----------------------------- */
+
+responseModal.addEventListener('click', (e) => { if (e.target.dataset.close) closeResponseModal(); });
+
+responseModal.querySelectorAll('.response-btn').forEach(b => {
+  b.addEventListener('click', () => selectResponseIntent(b.dataset.intent));
+});
+
+rAnzahl.addEventListener('change', () => {
+  const n = parseInt(rAnzahl.value, 10) || 0;
+  renderResponseBegleitFields(n, collectResponseBegleit());
+});
+
+function openResponseModal(id) {
+  const row = allRows.find(r => r.id === id);
+  if (!row) return;
+  hideResponseError();
+  rId.value = row.id;
+  rEmail.textContent = row.email || '';
+  rStatus.value = '';
+  rVorname.value  = row.vorname  || '';
+  rNachname.value = row.nachname || '';
+  responseModal.dataset.max = row.max_begleitpersonen ?? 0;
+
+  // Dropdown für Begleitpersonen aufbauen
+  const max = row.max_begleitpersonen ?? 0;
+  rAnzahl.innerHTML = buildBegleitOptions(max, row.anzahl_begleitpersonen || 0);
+
+  rDetails.hidden = true;
+  rBegleitField.hidden = true;
+  rBegleitNames.hidden = true;
+  responseSaveBtn.disabled = true;
+  responseModal.querySelectorAll('.response-btn').forEach(b => b.classList.remove('is-selected'));
+
+  // Falls schon eine Antwort existiert, vorbelegen
+  if (row.status === 'angemeldet' || row.status === 'abgemeldet') {
+    selectResponseIntent(row.status, row);
+  }
+
+  responseModal.hidden = false;
+}
+
+function closeResponseModal() {
+  responseModal.hidden = true;
+}
+
+function selectResponseIntent(intent, row) {
+  rStatus.value = intent;
+  responseModal.querySelectorAll('.response-btn').forEach(b => {
+    b.classList.toggle('is-selected', b.dataset.intent === intent);
+  });
+  responseSaveBtn.disabled = false;
+
+  if (intent === 'angemeldet') {
+    rDetails.hidden = false;
+    const max = parseInt(responseModal.dataset.max, 10) || 0;
+    if (max > 0) {
+      rBegleitField.hidden = false;
+      const existing = (row && Array.isArray(row.begleitpersonen)) ? row.begleitpersonen : collectResponseBegleit();
+      const n = parseInt(rAnzahl.value, 10) || 0;
+      renderResponseBegleitFields(n, existing);
+    } else {
+      rBegleitField.hidden = true;
+      rBegleitNames.hidden = true;
+    }
+    setTimeout(() => rVorname.focus(), 50);
+  } else {
+    rDetails.hidden = true;
+    rBegleitField.hidden = true;
+    rBegleitNames.hidden = true;
+  }
+  hideResponseError();
+}
+
+function renderResponseBegleitFields(count, existing = []) {
+  if (!count || count < 1) {
+    rBegleitList.innerHTML = '';
+    rBegleitNames.hidden = true;
+    return;
+  }
+  const rows = [];
+  for (let i = 0; i < count; i++) {
+    const ex = existing[i] || {};
+    rows.push(`
+      <div class="r-begleit-person">
+        <input type="text" class="js-rbp-vorname" placeholder="Vorname ${i + 1}" value="${esc(ex.vorname || '')}" maxlength="100">
+        <input type="text" class="js-rbp-nachname" placeholder="Nachname ${i + 1}" value="${esc(ex.nachname || '')}" maxlength="100">
+      </div>
+    `);
+  }
+  rBegleitList.innerHTML = rows.join('');
+  rBegleitNames.hidden = false;
+}
+
+function collectResponseBegleit() {
+  const vs = rBegleitList.querySelectorAll('.js-rbp-vorname');
+  const ns = rBegleitList.querySelectorAll('.js-rbp-nachname');
+  const out = [];
+  for (let i = 0; i < vs.length; i++) {
+    out.push({ vorname: vs[i].value.trim(), nachname: ns[i]?.value.trim() || '' });
+  }
+  return out;
+}
+
+responseForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideResponseError();
+  const status = rStatus.value === 'abgemeldet' ? 'abgemeldet' : (rStatus.value === 'angemeldet' ? 'angemeldet' : '');
+  if (!status) return showResponseError('Bitte Zusage oder Absage wählen.');
+
+  const payload = { id: rId.value, status };
+
+  if (status === 'angemeldet') {
+    const vorname  = rVorname.value.trim();
+    const nachname = rNachname.value.trim();
+    if (!vorname || !nachname) return showResponseError('Bitte Vor- und Nachname angeben.');
+    const n = rBegleitField.hidden ? 0 : (parseInt(rAnzahl.value, 10) || 0);
+    const begleit = n > 0 ? collectResponseBegleit() : [];
+    if (n > 0 && (begleit.length !== n || begleit.some(p => !p.vorname || !p.nachname))) {
+      return showResponseError('Bitte Vor- und Nachname für jede Begleitperson angeben.');
+    }
+    payload.vorname = vorname;
+    payload.nachname = nachname;
+    payload.anzahl_begleitpersonen = n;
+    payload.begleitpersonen = begleit;
+  }
+
+  responseSaveBtn.disabled = true;
+  responseSaveBtn.textContent = 'Speichern…';
+  try {
+    const token = sessionStorage.getItem(STORAGE_KEY);
+    const res = await fetch('/.netlify/functions/admin-set-response', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || `Fehler ${res.status}`);
+    closeResponseModal();
+    await loadAndRender();
+  } catch (err) {
+    showResponseError(err.message);
+  } finally {
+    responseSaveBtn.disabled = false;
+    responseSaveBtn.textContent = 'Speichern';
+  }
+});
+
+function showResponseError(msg) { responseFormErr.textContent = msg; responseFormErr.hidden = false; }
+function hideResponseError()    { responseFormErr.hidden = true; responseFormErr.textContent = ''; }
+
+function buildBegleitOptions(max, current) {
+  let html = '';
+  for (let i = 0; i <= max; i++) {
+    const label = i === 0
+      ? 'Keine Begleitperson'
+      : (i === 1 ? '1 Begleitperson' : `${i} Begleitpersonen`);
+    const sel = i === current ? ' selected' : '';
+    html += `<option value="${i}"${sel}>${label}</option>`;
+  }
+  return html;
+}
 
 /* --- Alle Gäste löschen ------------------------------------------ */
 
@@ -685,6 +865,12 @@ function rowHtml(r) {
       <td class="num">${isJa ? personen : '–'}</td>
       <td>${isOffen ? '–' : formatDate(r.updated_at || r.created_at)}</td>
       <td class="row-actions">
+        <button type="button" class="action-btn action-btn--response js-response" title="Antwort erfassen" aria-label="Antwort erfassen">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+        </button>
         <button type="button" class="action-btn js-edit" title="Gast bearbeiten" aria-label="Gast bearbeiten">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
