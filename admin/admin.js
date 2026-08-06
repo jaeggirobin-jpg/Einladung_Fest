@@ -12,6 +12,7 @@ const loginErr    = document.getElementById('login-error');
 const dashboard   = document.getElementById('dashboard');
 const refreshBtn  = document.getElementById('refresh-btn');
 const csvBtn      = document.getElementById('csv-btn');
+const offeneBtn   = document.getElementById('offene-mails-btn');
 const logoutBtn   = document.getElementById('logout-btn');
 const searchInput = document.getElementById('search-input');
 const tbody       = document.getElementById('tbody');
@@ -109,6 +110,7 @@ logoutBtn.addEventListener('click', () => {
 
 refreshBtn.addEventListener('click', () => loadAndRender());
 csvBtn.addEventListener('click', exportCsv);
+offeneBtn.addEventListener('click', exportOffeneMails);
 
 document.querySelectorAll('.filter-btn').forEach(b => {
   b.addEventListener('click', () => {
@@ -948,4 +950,29 @@ function csvCell(s) {
   const v = String(s || '');
   if (/[;"\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
   return v;
+}
+
+/* --- Export: E-Mails ohne Rückmeldung ----------------------------- */
+
+function exportOffeneMails() {
+  const mails = allRows
+    .filter(r => r.status === 'offen')
+    .map(r => (r.email || '').trim())
+    .filter(Boolean);
+
+  if (mails.length === 0) {
+    alert('Alle Gäste haben bereits geantwortet – keine offenen E-Mail-Adressen.');
+    return;
+  }
+
+  // Eine Adresse pro Zeile, untereinander
+  const csv = '﻿' + ['E-Mail', ...mails].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `offene-emails_${date}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
