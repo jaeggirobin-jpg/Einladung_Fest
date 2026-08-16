@@ -84,18 +84,20 @@ body::after {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 20px 14px 40px;
+  padding: 14px 12px 22px;
 }
 
 .card {
   width: 100%;
   max-width: 460px;
+  /* zentriert, solange Platz da ist; bei langem Inhalt oben bündig */
+  margin: auto;
   background: rgba(253, 250, 243, 0.06);
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
   border: 1px solid rgba(253, 250, 243, 0.14);
   border-radius: var(--radius);
-  padding: 22px 24px 26px;
+  padding: 16px 18px 18px;
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.45),
     0 1px 0 rgba(255, 255, 255, 0.05) inset;
@@ -111,9 +113,9 @@ body::after {
 
 .card__header {
   background: #FFFFFF;
-  padding: 14px 22px;
+  padding: 10px 16px;
   border-radius: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
   text-align: center;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
@@ -123,26 +125,26 @@ body::after {
 .logo-img {
   display: block;
   width: 100%;
-  max-width: 220px;
+  max-width: 178px;
   height: auto;
   margin: 0 auto;
 }
 
 /* --- Hero --------------------------------------------------------- */
 
-.hero-text { text-align: center; margin-bottom: 22px; }
+.hero-text { text-align: center; margin-bottom: 12px; }
 
 .eyebrow {
   color: var(--gold-light);
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .headline {
   color: var(--cream-light);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.5px;
@@ -153,13 +155,13 @@ body::after {
   width: 36px;
   height: 1px;
   background: var(--gold);
-  margin: 12px auto;
+  margin: 9px auto;
 }
 
 .intro {
   color: rgba(253, 250, 243, 0.78);
-  font-size: 13.5px;
-  line-height: 1.6;
+  font-size: 12.5px;
+  line-height: 1.5;
   margin: 0;
 }
 
@@ -181,54 +183,14 @@ body::after {
   animation: spin 0.8s linear infinite;
 }
 
-/* --- Willkommens-Screen: Eckdaten & Programm ----------------------- */
-
-.info-card {
-  background: rgba(0, 0, 0, 0.22);
-  border-left: 3px solid var(--gold);
-  border-radius: var(--radius-sm);
-  padding: 20px 18px;
-  text-align: center;
-  margin-bottom: 14px;
-  animation: cardIn 0.6s var(--ease) both;
-}
-
-.info-card__label {
-  color: var(--gold-light);
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 4px;
-  margin-bottom: 8px;
-}
-
-.info-card__date {
-  color: var(--cream-light);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.5px;
-}
-
-.info-card__line {
-  width: 28px;
-  height: 1px;
-  background: var(--gold-light);
-  margin: 14px auto;
-  opacity: 0.6;
-}
-
-.info-card__place {
-  color: rgba(253, 250, 243, 0.75);
-  font-size: 13.5px;
-  line-height: 1.55;
-}
+/* --- Willkommens-Screen: Programm ---------------------------------- */
 
 .prog {
   background: rgba(0, 0, 0, 0.18);
   border: 1px solid rgba(253, 250, 243, 0.10);
   border-radius: var(--radius-sm);
-  padding: 16px 18px 6px;
-  margin-bottom: 14px;
+  padding: 12px 16px 4px;
+  margin-bottom: 10px;
   animation: cardIn 0.7s var(--ease) both;
 }
 
@@ -238,14 +200,14 @@ body::after {
   font-weight: 500;
   letter-spacing: 4px;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 9px;
 }
 
 .prog__row {
   display: flex;
   gap: 14px;
   align-items: baseline;
-  padding: 9px 0;
+  padding: 6px 0;
   border-bottom: 1px solid rgba(253, 250, 243, 0.08);
 }
 .prog__row--last { border-bottom: none; }
@@ -271,7 +233,7 @@ body::after {
   background: rgba(191, 133, 59, 0.10);
   border: 1px solid rgba(191, 133, 59, 0.22);
   border-radius: var(--radius-sm);
-  padding: 13px 15px;
+  padding: 11px 13px;
   animation: cardIn 0.8s var(--ease) both;
 }
 
@@ -283,8 +245,8 @@ body::after {
 
 .note__text {
   color: rgba(253, 250, 243, 0.8);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12.5px;
+  line-height: 1.55;
   margin: 0;
 }
 
