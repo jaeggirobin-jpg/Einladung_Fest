@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { randomUUID } from 'node:crypto';
+import { ladeFreigabe, jsonResp } from '../../gruss-shared.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -8,29 +9,32 @@ const supabase = createClient(
 
 export async function handler(event) {
   if (event.httpMethod !== 'POST') {
-    return resp(405, { error: 'Methode nicht erlaubt' });
+    return jsonResp(405, { error: 'Methode nicht erlaubt' });
   }
 
-  // Eindeutiger Pfad pro Foto: Datum-Ordner + UUID
+  const status = await ladeFreigabe(supabase);
+  if (!status.offen) {
+    return jsonResp(403, { error: 'Die Selfie-Station ist noch nicht freigeschaltet.' });
+  }
+
+  // Ein Ordner pro Tag, gleiche UUID für Original und Vorschaubild
   const day = new Date().toISOString().slice(0, 10);
-  const path = `${day}/${randomUUID()}.jpg`;
+  const id  = randomUUID();
+  const originalPath = `${day}/${id}.jpg`;
+  const thumbPath    = `${day}/${id}_thumb.jpg`;
 
-  const { data, error } = await supabase.storage
-    .from('gruesse-fotos')
-    .createSignedUploadUrl(path);
+  const [orig, thumb] = await Promise.all([
+    supabase.storage.from('gruesse-fotos').createSignedUploadUrl(originalPath),
+    supabase.storage.from('gruesse-fotos').createSignedUploadUrl(thumbPath)
+  ]);
 
-  if (error) {
-    console.error('Signed upload URL error:', error);
-    return resp(500, { error: 'Upload konnte nicht vorbereitet werden.' });
+  if (orig.error || thumb.error) {
+    console.error('Signed upload URL error:', orig.error || thumb.error);
+    return jsonResp(500, { error: 'Upload konnte nicht vorbereitet werden.' });
   }
 
-  return resp(200, { path: data.path, url: data.signedUrl });
-}
-
-function resp(status, body) {
-  return {
-    statusCode: status,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
-    body: JSON.stringify(body)
-  };
+  return jsonResp(200, {
+    original: { path: orig.data.path,  url: orig.data.signedUrl },
+    thumb:    { path: thumb.data.path, url: thumb.data.signedUrl }
+  });
 }

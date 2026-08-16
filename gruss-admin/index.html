@@ -46,6 +46,33 @@
         </div>
       </header>
 
+      <section class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title">Selfie-Station</h2>
+          <span id="status-badge" class="status-badge">–</span>
+        </div>
+        <p class="panel__hint" id="status-hint">Status wird geladen …</p>
+
+        <div class="panel__row">
+          <button type="button" id="unlock-btn" class="btn-primary">Jetzt freischalten</button>
+          <button type="button" id="lock-btn" class="btn-ghost btn-ghost--danger">Sperren</button>
+        </div>
+
+        <div class="panel__schedule">
+          <label for="schedule-input">Automatisch freischalten am</label>
+          <div class="panel__row">
+            <input type="datetime-local" id="schedule-input">
+            <button type="button" id="schedule-btn" class="btn-ghost">Zeitpunkt speichern</button>
+          </div>
+          <p class="panel__hint">
+            Bis dahin sehen die Gäste den Willkommens-Screen mit dem Hinweis,
+            dass es später weitergeht. Die Seite öffnet sich dann von selbst.
+          </p>
+        </div>
+
+        <p id="settings-error" class="panel__error" hidden></p>
+      </section>
+
       <section id="gallery" class="gallery">
         <p class="empty" id="empty-hint">Lade Grüsse …</p>
       </section>
