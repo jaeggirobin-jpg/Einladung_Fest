@@ -163,6 +163,81 @@ body::after {
   margin: 0;
 }
 
+/* --- Ladezustand --------------------------------------------------- */
+
+.loading-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 0;
+}
+
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(253, 250, 243, 0.2);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* --- Teaser (Willkommens-Screen) ----------------------------------- */
+
+.teaser {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(191, 133, 59, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 22px 20px;
+  text-align: center;
+  animation: cardIn 0.6s var(--ease) both;
+}
+
+.teaser__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  color: var(--gold-light);
+  background: rgba(191, 133, 59, 0.14);
+  border: 1px solid rgba(191, 133, 59, 0.35);
+  margin-bottom: 14px;
+}
+
+.teaser__title {
+  color: var(--cream-light);
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  letter-spacing: 0.2px;
+}
+
+.teaser__text {
+  color: rgba(253, 250, 243, 0.72);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.teaser__hint {
+  color: rgba(253, 250, 243, 0.85);
+  font-size: 13px;
+  line-height: 1.6;
+  background: rgba(191, 133, 59, 0.12);
+  border-radius: 6px;
+  padding: 11px 13px;
+}
+.teaser__hint strong { color: var(--gold-light); }
+
+.teaser__countdown {
+  color: var(--gold-light);
+  font-size: 13px;
+  font-weight: 500;
+  margin: 14px 0 0;
+  letter-spacing: 0.3px;
+}
+
 /* --- Schritte ------------------------------------------------------ */
 
 .step {

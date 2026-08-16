@@ -148,6 +148,109 @@ html, body {
 
 .topbar__right { display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* --- Freischalt-Panel ----------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 22px 22px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.panel__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--slate-dark);
+  margin: 0;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: rgba(122, 133, 141, 0.14);
+  color: var(--text-muted);
+}
+.status-badge--open {
+  background: #E9F2E6;
+  color: #5A8A4F;
+}
+.status-badge--planned {
+  background: rgba(191, 133, 59, 0.14);
+  color: var(--gold);
+}
+.status-badge--locked {
+  background: #F7E6E1;
+  color: var(--no);
+}
+
+.panel__hint {
+  color: var(--text-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+  margin: 0 0 14px;
+}
+
+.panel__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.panel__schedule {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.panel__schedule label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.panel__schedule input {
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.panel__schedule input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.15);
+}
+
+.panel__schedule .panel__hint { margin: 10px 0 0; }
+
+.panel__error {
+  color: var(--no);
+  background: #F7E6E1;
+  border: 1px solid rgba(184, 83, 60, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  margin: 14px 0 0;
+}
+
 /* --- Galerie -------------------------------------------------------- */
 
 .gallery {
