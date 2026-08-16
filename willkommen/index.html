@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2A3138">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="Herzlich willkommen zur Geschäftsübergabe der Jäggi Vollmer GmbH.">
+
+  <title>Willkommen · Jäggi Vollmer GmbH</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="pattern-bg" aria-hidden="true">
+    <div class="pattern-bg__layer"></div>
+  </div>
+
+  <main class="page">
+    <section class="card" role="region" aria-label="Willkommen">
+
+      <header class="card__header">
+        <img src="../assets/logo.png" alt="Jäggi Vollmer" class="logo-img">
+      </header>
+
+      <!-- Ladezustand, bis der Status bekannt ist -->
+      <div id="loading-panel" class="loading-panel">
+        <div class="loading-spinner" aria-hidden="true"></div>
+      </div>
+
+      <!-- Willkommens-Screen: bewusst neutrale Event-Infoseite -->
+      <div id="welcome-panel" hidden>
+        <div class="hero-text">
+          <div class="eyebrow">HERZLICH WILLKOMMEN</div>
+          <h1 class="headline">Schön,<br>dass du da bist!</h1>
+          <div class="divider" aria-hidden="true"></div>
+          <p class="intro">
+            Heute übergeben Felix und Sonja Jäggi die Jäggi Vollmer GmbH
+            an Robin Jäggi. Wir freuen uns, diesen Abend mit dir zu feiern.
+          </p>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card__label">MONTAG</div>
+          <div class="info-card__date">31. August 2026</div>
+          <div class="info-card__line" aria-hidden="true"></div>
+          <div class="info-card__place">Horburgstrasse 96<br>4057 Basel</div>
+        </div>
+
+        <div class="prog">
+          <div class="prog__title">PROGRAMM</div>
+          <div class="prog__row">
+            <span class="prog__time">17:00</span>
+            <span class="prog__text">Apéro/Essen</span>
+          </div>
+          <div class="prog__row">
+            <span class="prog__time">18:30</span>
+            <span class="prog__text">Geschäftsübergabe</span>
+          </div>
+          <div class="prog__row prog__row--last">
+            <span class="prog__time">danach</span>
+            <span class="prog__text">Essen/Feiern/Bar</span>
+          </div>
+        </div>
+
+        <div class="note">
+          <div class="note__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"></circle>
+              <polyline points="12 7 12 12 15 14"></polyline>
+            </svg>
+          </div>
+          <p class="note__text" id="note-text">
+            Dieser Code bleibt den ganzen Abend aktiv.
+            Schau später nochmals vorbei.
+          </p>
+        </div>
+      </div>
+
+      <!-- Inhalt wird erst nach der Freischaltung nachgeladen -->
+      <div id="form-wrap" hidden></div>
+
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
