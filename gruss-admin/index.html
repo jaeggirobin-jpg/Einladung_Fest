@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Album-Werkstatt</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="gruss-admin.css">
+</head>
+<body>
+
+  <main class="shell">
+
+    <div id="login" class="login">
+      <div class="login__card">
+        <div class="login__icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </div>
+        <p class="login__title">Album-Werkstatt</p>
+        <form id="login-form" class="login__form">
+          <input type="password" id="password" placeholder="Passwort" autocomplete="current-password" autofocus>
+          <button type="submit" class="btn-primary">Öffnen</button>
+        </form>
+        <p id="login-error" class="login__error" hidden></p>
+      </div>
+    </div>
+
+    <div id="dashboard" class="dashboard" hidden>
+
+      <header class="topbar">
+        <div class="topbar__left">
+          <div class="topbar__title">Album-Werkstatt</div>
+          <div class="topbar__count" id="count-line">–</div>
+        </div>
+        <div class="topbar__right">
+          <button type="button" id="refresh-btn" class="btn-ghost">Aktualisieren</button>
+          <button type="button" id="csv-btn" class="btn-ghost">Texte als CSV</button>
+          <button type="button" id="logout-btn" class="btn-ghost btn-ghost--danger">Schliessen</button>
+        </div>
+      </header>
+
+      <section id="gallery" class="gallery">
+        <p class="empty" id="empty-hint">Lade Grüsse …</p>
+      </section>
+
+    </div>
+
+  </main>
+
+  <script type="module" src="gruss-admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,446 @@
+/* ===================================================================
+   Gästebuch-Seite: Selfie + Gruss fürs Fotoalbum
+   =================================================================== */
+
+:root {
+  --gold:        #BF853B;
+  --gold-light:  #C9A877;
+  --cream:       #EFEADD;
+  --cream-light: #FDFAF3;
+  --slate:       #4B575D;
+  --slate-dark:  #2A3138;
+  --slate-mid:   #3D4750;
+  --error:       #C9533B;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --ease:        cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: var(--cream-light);
+  background: linear-gradient(160deg, var(--slate-dark) 0%, var(--slate-mid) 100%);
+  min-height: 100vh;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+}
+
+body { position: relative; overflow-x: hidden; }
+
+/* --- Hintergrund: gekacheltes Logo mit Atem-Effekt ---------------- */
+
+.pattern-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--slate-dark);
+}
+
+.pattern-bg__layer {
+  position: absolute;
+  inset: -10vh -10vw;
+  background-image: url('../assets/logo.png');
+  background-size: 340px auto;
+  background-repeat: repeat;
+  opacity: 0.08;
+  transform-origin: center center;
+  animation: pattern-breathe 11s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes pattern-breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.06; }
+  50%      { transform: scale(1.08); opacity: 0.10; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pattern-bg__layer { animation: none; }
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.55) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* --- Layout ------------------------------------------------------- */
+
+.page {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 14px 40px;
+}
+
+.card {
+  width: 100%;
+  max-width: 460px;
+  background: rgba(253, 250, 243, 0.06);
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+  border: 1px solid rgba(253, 250, 243, 0.14);
+  border-radius: var(--radius);
+  padding: 22px 24px 26px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  animation: cardIn 0.7s var(--ease) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Header ------------------------------------------------------- */
+
+.card__header {
+  background: #FFFFFF;
+  padding: 14px 22px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  text-align: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 4px 18px rgba(0, 0, 0, 0.18);
+}
+
+.logo-img {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  margin: 0 auto;
+}
+
+/* --- Hero --------------------------------------------------------- */
+
+.hero-text { text-align: center; margin-bottom: 22px; }
+
+.eyebrow {
+  color: var(--gold-light);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+}
+
+.headline {
+  color: var(--cream-light);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.divider {
+  width: 36px;
+  height: 1px;
+  background: var(--gold);
+  margin: 12px auto;
+}
+
+.intro {
+  color: rgba(253, 250, 243, 0.78);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* --- Schritte ------------------------------------------------------ */
+
+.step {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(253, 250, 243, 0.10);
+  border-radius: var(--radius-sm);
+  padding: 14px 14px 16px;
+  margin-bottom: 12px;
+}
+
+.step__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  color: var(--slate-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.step__title {
+  color: var(--cream-light);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.step__optional {
+  color: rgba(253, 250, 243, 0.5);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.step__hint {
+  color: rgba(253, 250, 243, 0.6);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0 0 10px 36px;
+}
+
+/* --- Kamera-Button + Vorschau -------------------------------------- */
+
+.camera-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 16px;
+  margin-left: 0;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--slate-dark);
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(191, 133, 59, 0.25);
+  transition: transform 0.15s var(--ease), filter 0.2s var(--ease);
+}
+.camera-btn:hover  { transform: translateY(-1px); filter: brightness(1.05); }
+.camera-btn:active { transform: translateY(0); }
+
+.foto-preview {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.foto-preview img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(253, 250, 243, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.retake-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--cream-light);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(253, 250, 243, 0.2);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s var(--ease);
+}
+.retake-btn:hover { background: rgba(0, 0, 0, 0.45); }
+
+/* --- Felder -------------------------------------------------------- */
+
+.field { position: relative; }
+
+.field input,
+.field textarea,
+.words input {
+  width: 100%;
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--cream-light);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(253, 250, 243, 0.15);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  -webkit-appearance: none;
+  appearance: none;
+  resize: vertical;
+}
+
+.field input::placeholder,
+.field textarea::placeholder,
+.words input::placeholder { color: rgba(253, 250, 243, 0.35); }
+
+.field input:focus,
+.field textarea:focus,
+.words input:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.18);
+}
+
+.char-count {
+  text-align: right;
+  color: rgba(253, 250, 243, 0.4);
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.words {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 360px) {
+  .words { grid-template-columns: 1fr; }
+}
+
+/* --- Honeypot ------------------------------------------------------ */
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* --- Fehler / Status ---------------------------------------------- */
+
+.form-error {
+  color: #FFCBC0;
+  background: rgba(201, 83, 59, 0.15);
+  border: 1px solid rgba(201, 83, 59, 0.4);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 4px 0 10px;
+}
+
+.upload-status {
+  text-align: center;
+  color: rgba(253, 250, 243, 0.6);
+  font-size: 12.5px;
+  margin: 10px 0 0;
+}
+
+/* --- Submit -------------------------------------------------------- */
+
+.btn-submit {
+  position: relative;
+  width: 100%;
+  margin-top: 6px;
+  padding: 15px 20px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--slate-dark);
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: transform 0.15s var(--ease), box-shadow 0.25s var(--ease), filter 0.2s var(--ease);
+  box-shadow: 0 6px 20px rgba(191, 133, 59, 0.25);
+  overflow: hidden;
+}
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(191, 133, 59, 0.4);
+  filter: brightness(1.05);
+}
+.btn-submit:disabled { cursor: not-allowed; opacity: 0.7; }
+
+.btn-submit__spinner {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid rgba(42, 49, 56, 0.25);
+  border-top-color: var(--slate-dark);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.form.is-submitting .btn-submit__label   { visibility: hidden; }
+.form.is-submitting .btn-submit__spinner { display: block; }
+
+/* --- Success ------------------------------------------------------- */
+
+.success {
+  text-align: center;
+  padding: 24px 6px 8px;
+  animation: cardIn 0.5s var(--ease);
+}
+
+.success__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  color: var(--gold);
+  background: rgba(191, 133, 59, 0.12);
+  border: 1px solid rgba(191, 133, 59, 0.35);
+  margin-bottom: 18px;
+}
+
+.success__title {
+  color: var(--cream-light);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 10px;
+}
+
+.success__text {
+  color: rgba(253, 250, 243, 0.78);
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 0 0 22px;
+}
+
+.btn-again {
+  padding: 12px 22px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cream-light);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(253, 250, 243, 0.25);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+.btn-again:hover { background: rgba(0, 0, 0, 0.45); border-color: var(--gold); }

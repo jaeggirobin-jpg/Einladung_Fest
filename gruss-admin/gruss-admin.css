@@ -1,0 +1,240 @@
+/* ===================================================================
+   Album-Werkstatt – geheime Galerie der Grüsse
+   =================================================================== */
+
+:root {
+  --gold:        #BF853B;
+  --gold-light:  #C9A877;
+  --cream:       #FDFAF3;
+  --bg:          #F4F1E8;
+  --surface:     #FFFFFF;
+  --border:      #E5DDC9;
+  --text:        #4B575D;
+  --text-muted:  #7A858D;
+  --slate-dark:  #2A3138;
+  --no:          #B8533C;
+  --shadow-sm:   0 1px 2px rgba(42, 49, 56, 0.06);
+  --shadow:      0 4px 18px rgba(42, 49, 56, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell { min-height: 100vh; padding: 24px 20px; }
+
+/* --- Login --------------------------------------------------------- */
+
+.login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 80vh;
+}
+
+.login__card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 40px 32px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.login__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  color: var(--gold);
+  background: rgba(191, 133, 59, 0.1);
+  border: 1px solid rgba(191, 133, 59, 0.3);
+  margin-bottom: 14px;
+}
+
+.login__title {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 2.5px;
+  color: var(--text-muted);
+  margin: 0 0 22px;
+  text-transform: uppercase;
+}
+
+.login__form { display: flex; flex-direction: column; gap: 12px; }
+
+.login__form input {
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.login__form input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.15);
+}
+
+.login__error { color: var(--no); font-size: 13px; margin: 12px 0 0; }
+
+/* --- Buttons -------------------------------------------------------- */
+
+.btn-primary {
+  padding: 12px 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--slate-dark);
+  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(191, 133, 59, 0.2);
+  transition: filter 0.2s ease, transform 0.15s ease;
+}
+.btn-primary:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+.btn-ghost {
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.btn-ghost:hover { background: var(--cream); border-color: var(--gold-light); }
+.btn-ghost--danger:hover { color: var(--no); border-color: var(--no); }
+
+/* --- Dashboard ------------------------------------------------------ */
+
+.dashboard { max-width: 1100px; margin: 0 auto; }
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.topbar__title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--slate-dark);
+  letter-spacing: -0.3px;
+}
+
+.topbar__count { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+.topbar__right { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --- Galerie -------------------------------------------------------- */
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.gruss-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.gruss-card__foto {
+  aspect-ratio: 4 / 3;
+  background: var(--cream);
+  overflow: hidden;
+}
+.gruss-card__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.gruss-card__foto--missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.gruss-card__body { padding: 14px 16px 16px; }
+
+.gruss-card__name {
+  font-weight: 700;
+  color: var(--slate-dark);
+  font-size: 15px;
+  margin: 0 0 2px;
+}
+
+.gruss-card__date {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  margin: 0 0 10px;
+}
+
+.gruss-card__msg {
+  color: var(--text);
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.gruss-card__words { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.word-chip {
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold);
+  background: rgba(191, 133, 59, 0.1);
+  border: 1px solid rgba(191, 133, 59, 0.3);
+  border-radius: 999px;
+}
+
+.gruss-card__dl {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(191, 133, 59, 0.4);
+}
+.gruss-card__dl:hover { border-bottom-color: var(--gold); }
+
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 60px 20px;
+}
