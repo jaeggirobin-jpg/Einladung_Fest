@@ -16,12 +16,10 @@ const THUMB_QUALITY    = 0.75;
 const loadingPanel = document.getElementById('loading-panel');
 const welcomePanel = document.getElementById('welcome-panel');
 const formWrap     = document.getElementById('form-wrap');
-const noteText     = document.getElementById('note-text');
 
 let freigabeAb     = null;
 let istOffen       = false;
 let pollTimer      = null;
-let hinweisTimer   = null;
 let stationGeladen = false;
 
 // Elemente der Station (erst nach dem Nachladen verfügbar)
@@ -66,36 +64,14 @@ async function setzeStatus(offen, ab) {
     loadingPanel.hidden = true;
     welcomePanel.hidden = true;
     formWrap.hidden = false;
-    if (pollTimer)    { clearInterval(pollTimer); pollTimer = null; }
-    if (hinweisTimer) { clearInterval(hinweisTimer); hinweisTimer = null; }
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
   } else {
+    // Nur die neutrale Programm-Seite. Kein Hinweis darauf,
+    // dass später noch etwas kommt.
     loadingPanel.hidden = true;
     formWrap.hidden = true;
     welcomePanel.hidden = false;
-    zeigeHinweis();
   }
-}
-
-/**
- * Hinweis auf der Willkommensseite. Bewusst unverfänglich formuliert –
- * es soll nicht erkennbar sein, was später kommt.
- */
-function zeigeHinweis() {
-  if (!freigabeAb) {
-    noteText.textContent =
-      'Dieser Code bleibt den ganzen Abend aktiv. Schau später nochmals vorbei.';
-    return;
-  }
-  const ziel = new Date(freigabeAb);
-  const update = () => {
-    if (ziel.getTime() - Date.now() <= 0) { pruefeStatus(); return; }
-    const zeit = ziel.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
-    noteText.textContent =
-      `Dieser Code bleibt den ganzen Abend aktiv. Schau ab ${zeit} Uhr nochmals vorbei.`;
-  };
-  update();
-  if (hinweisTimer) clearInterval(hinweisTimer);
-  hinweisTimer = setInterval(update, 30000);
 }
 
 /* --- Station nachladen --------------------------------------------- */
