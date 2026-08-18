@@ -108,6 +108,10 @@ function verbindeStation() {
     errorBox:    document.getElementById('form-error'),
     submitBtn:   document.getElementById('submit-btn'),
     status:      document.getElementById('upload-status'),
+    progress:    document.getElementById('upload-progress'),
+    progressBar: document.getElementById('uploader-bar'),
+    progressPct: document.getElementById('uploader-pct'),
+    progressLbl: document.getElementById('uploader-label'),
     success:     document.getElementById('success-panel'),
     againBtn:    document.getElementById('again-btn')
   };
@@ -193,26 +197,31 @@ async function sendeGruss(e) {
   if (!nachricht)    return showError('Bitte eine Nachricht schreiben (Schritt 3).');
 
   setSubmitting(true);
+  starteFortschritt();
   try {
     // 1. Signierte Upload-URLs holen
-    setStatus('Foto wird hochgeladen …');
     const urlRes = await fetch('/.netlify/functions/gruss-upload-url', { method: 'POST' });
     const urlOut = await urlRes.json().catch(() => ({}));
     if (!urlRes.ok) throw new Error(urlOut.error || 'Upload konnte nicht vorbereitet werden.');
 
-    // 2. Original + Vorschau direkt zu Supabase Storage
-    const [origRes, thumbRes] = await Promise.all([
-      fetch(urlOut.original.url, {
-        method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: originalBlob
-      }),
-      fetch(urlOut.thumb.url, {
-        method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: thumbBlob
-      })
+    // 2. Original + Vorschau direkt zu Supabase Storage, mit Fortschritt.
+    //    Der Upload macht praktisch die ganze Wartezeit aus, deshalb
+    //    zaehlt der Ring bis 95% und die letzten 5% kommen beim Speichern.
+    const gesamt = originalBlob.size + thumbBlob.size;
+    const geladen = { original: 0, thumb: 0 };
+    const melde = () => {
+      const anteil = (geladen.original + geladen.thumb) / gesamt;
+      setzeFortschritt(Math.min(95, anteil * 95));
+    };
+
+    const [origOk, thumbOk] = await Promise.all([
+      ladeHoch(urlOut.original.url, originalBlob, b => { geladen.original = b; melde(); }),
+      ladeHoch(urlOut.thumb.url,    thumbBlob,    b => { geladen.thumb    = b; melde(); })
     ]);
-    if (!origRes.ok) throw new Error('Foto-Upload fehlgeschlagen. Bitte erneut versuchen.');
+    if (!origOk) throw new Error('Foto-Upload fehlgeschlagen. Bitte erneut versuchen.');
 
     // 3. Gruss speichern
-    setStatus('Gruss wird gespeichert …');
+    setzeFortschritt(97, 'Gruss wird gespeichert …');
     const subRes = await fetch('/.netlify/functions/gruss-submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -222,12 +231,15 @@ async function sendeGruss(e) {
         wort1: el.wort1.value.trim(),
         wort2: el.wort2.value.trim(),
         foto_path: urlOut.original.path,
-        thumb_path: thumbRes.ok ? urlOut.thumb.path : '',
+        thumb_path: thumbOk ? urlOut.thumb.path : '',
         website: el.form.website.value
       })
     });
     const subOut = await subRes.json().catch(() => ({}));
     if (!subRes.ok) throw new Error(subOut.error || 'Speichern fehlgeschlagen.');
+
+    setzeFortschritt(100, 'Fertig!');
+    await new Promise(r => setTimeout(r, 400));
 
     el.form.hidden = true;
     el.hero.hidden = true;
@@ -237,8 +249,56 @@ async function sendeGruss(e) {
     showError(err.message || 'Es ist ein Fehler aufgetreten. Bitte erneut versuchen.');
   } finally {
     setSubmitting(false);
+    beendeFortschritt();
     setStatus('');
   }
+}
+
+/* --- Upload mit Fortschritt ---------------------------------------- */
+
+/**
+ * PUT via XMLHttpRequest – fetch() liefert keinen Upload-Fortschritt.
+ * Gibt true/false zurück, statt zu werfen, damit ein fehlgeschlagenes
+ * Vorschaubild den Gruss nicht verhindert.
+ */
+function ladeHoch(url, blob, onFortschritt) {
+  return new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('Content-Type', 'image/jpeg');
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) onFortschritt(e.loaded);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onFortschritt(blob.size);
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    };
+    xhr.onerror = () => resolve(false);
+    xhr.send(blob);
+  });
+}
+
+function starteFortschritt() {
+  el.form.classList.add('is-uploading');
+  el.progress.hidden = false;
+  setzeFortschritt(0, 'Foto wird hochgeladen …');
+}
+
+function setzeFortschritt(prozent, label) {
+  const UMFANG = 326.73; // 2 * PI * 52
+  const p = Math.max(0, Math.min(100, prozent));
+  el.progressBar.style.strokeDashoffset = String(UMFANG * (1 - p / 100));
+  el.progressPct.textContent = `${Math.round(p)}%`;
+  if (label) el.progressLbl.textContent = label;
+}
+
+function beendeFortschritt() {
+  el.form.classList.remove('is-uploading');
+  el.progress.hidden = true;
 }
 
 function setzeZurueck() {

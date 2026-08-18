@@ -459,6 +459,66 @@ body::after {
 .form.is-submitting .btn-submit__label   { visibility: hidden; }
 .form.is-submitting .btn-submit__spinner { display: block; }
 
+/* Während des Uploads zeigt der Ring den Fortschritt, der Button verschwindet */
+.form.is-uploading .btn-submit { display: none; }
+
+/* --- Fortschrittsring ---------------------------------------------- */
+
+.uploader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 0 4px;
+  animation: cardIn 0.35s var(--ease) both;
+}
+
+.uploader__ring {
+  position: relative;
+  width: 92px;
+  height: 92px;
+}
+
+.uploader__ring svg {
+  transform: rotate(-90deg);
+  display: block;
+}
+
+.uploader__track,
+.uploader__bar {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.uploader__track { stroke: rgba(253, 250, 243, 0.15); }
+
+.uploader__bar {
+  stroke: var(--gold);
+  /* Umfang bei r=52: 2 * PI * 52 = 326.73 */
+  stroke-dasharray: 326.73;
+  stroke-dashoffset: 326.73;
+  transition: stroke-dashoffset 0.25s var(--ease);
+}
+
+.uploader__pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cream-light);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.uploader__label {
+  color: rgba(253, 250, 243, 0.7);
+  font-size: 13px;
+  margin: 12px 0 0;
+  text-align: center;
+}
+
 /* --- Success ------------------------------------------------------- */
 
 .success {
