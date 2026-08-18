@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { ladeFreigabe, timingSafeEqual, jsonResp } from '../../gruss-shared.js';
+import { ladeFreigabe, timingSafeEqual, jsonResp, werkstattPasswort, passwortDiagnose } from '../../gruss-shared.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -9,9 +9,14 @@ const supabase = createClient(
 export async function handler(event) {
   const auth = event.headers.authorization || event.headers.Authorization || '';
   const token = auth.replace(/^Bearer\s+/i, '').trim();
-  const expected = process.env.GRUESSE_ADMIN_PASSWORD;
+  const expected = werkstattPasswort();
 
-  if (!expected) return jsonResp(500, { error: 'GRUESSE_ADMIN_PASSWORD nicht konfiguriert.' });
+  if (!expected) {
+    return jsonResp(500, {
+      error: 'Passwort nicht konfiguriert. Erwartet wird WERKSTATT_PASSWORD ' +
+             '(oder GRUESSE_ADMIN_PASSWORD), Scope "Functions". ' + passwortDiagnose()
+    });
+  }
   if (!token || !timingSafeEqual(token, expected)) {
     return jsonResp(401, { error: 'Nicht autorisiert.' });
   }
