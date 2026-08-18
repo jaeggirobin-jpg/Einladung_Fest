@@ -35,6 +35,33 @@ export async function ladeFreigabe(supabase) {
   };
 }
 
+/**
+ * Passwort der Album-Werkstatt.
+ * Mehrere Schreibweisen werden akzeptiert, damit ein Tippfehler
+ * beim Anlegen der Netlify-Variable nicht gleich alles blockiert.
+ */
+export function werkstattPasswort() {
+  return process.env.WERKSTATT_PASSWORD
+      || process.env.GRUESSE_ADMIN_PASSWORD
+      || process.env.GRUSSE_ADMIN_PASSWORD
+      || process.env.GRUESSE_PASSWORD
+      || null;
+}
+
+/**
+ * Hilfestellung, wenn keine passende Variable gefunden wurde:
+ * listet die NAMEN der gesetzten Passwort-Variablen auf.
+ * Werte werden bewusst nie ausgegeben.
+ */
+export function passwortDiagnose() {
+  const namen = Object.keys(process.env)
+    .filter(k => /PASS|ADMIN|WERKSTATT|GRUESS|GRUSS/i.test(k))
+    .sort();
+  return namen.length
+    ? `In Netlify sichtbare Variablen: ${namen.join(', ')}.`
+    : 'Die Functions sehen aktuell gar keine Passwort-Variable.';
+}
+
 export function timingSafeEqual(a, b) {
   if (a.length !== b.length) return false;
   let diff = 0;
