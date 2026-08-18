@@ -75,8 +75,8 @@
     </div>
     <p class="step__hint">Welche zwei Worte passen für dich am besten zu Felix &amp; Sonja?</p>
     <div class="words">
-      <input type="text" id="wort1" name="wort1" maxlength="30" placeholder="z.B. herzlich">
-      <input type="text" id="wort2" name="wort2" maxlength="30" placeholder="z.B. bodenständig">
+      <input type="text" id="wort1" name="wort1" maxlength="30" aria-label="Erstes Wort">
+      <input type="text" id="wort2" name="wort2" maxlength="30" aria-label="Zweites Wort">
     </div>
   </div>
 
@@ -92,6 +92,18 @@
     <span class="btn-submit__spinner" aria-hidden="true"></span>
   </button>
   <p id="upload-status" class="upload-status" hidden></p>
+
+  <!-- Fortschrittsring während des Uploads -->
+  <div id="upload-progress" class="uploader" hidden role="status" aria-live="polite">
+    <div class="uploader__ring">
+      <svg viewBox="0 0 120 120" width="92" height="92" aria-hidden="true">
+        <circle class="uploader__track" cx="60" cy="60" r="52"></circle>
+        <circle class="uploader__bar" id="uploader-bar" cx="60" cy="60" r="52"></circle>
+      </svg>
+      <span class="uploader__pct" id="uploader-pct">0%</span>
+    </div>
+    <p class="uploader__label" id="uploader-label">Foto wird hochgeladen …</p>
+  </div>
 </form>
 
 <div id="success-panel" class="success" hidden role="status" aria-live="polite">
