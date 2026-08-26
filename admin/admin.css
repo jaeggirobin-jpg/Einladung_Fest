@@ -605,6 +605,42 @@ html, body {
   line-height: 1.45;
 }
 
+.modal__optional {
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.modal__field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+}
+.modal__field textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.15);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 0;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+.check input { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
+.check__count { color: var(--text-muted); font-size: 13px; }
+
 .modal__error {
   color: var(--no);
   background: var(--no-bg);

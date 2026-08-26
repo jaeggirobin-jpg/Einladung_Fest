@@ -59,6 +59,14 @@
             </svg>
             Offene E-Mails
           </button>
+          <button type="button" id="etiketten-btn" class="btn-ghost" title="Namensetiketten drucken">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <line x1="6" y1="11" x2="14" y2="11"></line>
+              <line x1="6" y1="14" x2="11" y2="14"></line>
+            </svg>
+            Etiketten erstellen
+          </button>
           <button type="button" id="logout-btn" class="btn-ghost btn-ghost--danger" title="Abmelden">
             Abmelden
           </button>
@@ -155,6 +163,47 @@
       <div class="modal__buttons">
         <button type="button" class="btn-ghost" data-close="1">Abbrechen</button>
         <button type="button" id="confirm-delete-btn" class="btn-danger">Ja, löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="etiketten-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="etiketten-title">
+    <div class="modal__backdrop" data-close="1"></div>
+    <div class="modal__card modal__card--wide">
+      <h3 id="etiketten-title" class="modal__title">Namensetiketten drucken</h3>
+      <p class="modal__text">
+        Format 49 × 23 mm, je ein Etikett pro Seite – bereit für den Etikettendrucker.
+        Die Schriftgrösse passt sich automatisch an die Namenslänge an.
+      </p>
+
+      <div class="modal__field">
+        <label class="check">
+          <input type="checkbox" id="et-gaeste" checked>
+          <span>Zugesagte Gäste <span class="check__count" id="et-count-gaeste">–</span></span>
+        </label>
+        <label class="check">
+          <input type="checkbox" id="et-begleit" checked>
+          <span>Begleitpersonen <span class="check__count" id="et-count-begleit">–</span></span>
+        </label>
+      </div>
+
+      <div class="modal__field">
+        <label for="et-extra">Zusätzliche Namen <span class="modal__optional">(freiwillig)</span></label>
+        <textarea id="et-extra" rows="3" placeholder="Ein Name pro Zeile, z.B.&#10;Anna Muster&#10;Peter Kunz"></textarea>
+        <p class="modal__hint">Für Gäste, die spontan kommen und nicht auf der Liste stehen.</p>
+      </div>
+
+      <div class="modal__field">
+        <label for="et-leer">Leere Etiketten zum Beschriften</label>
+        <input type="number" id="et-leer" min="0" max="100" value="0">
+        <p class="modal__hint">Nur mit Logo und Linie – zum Ausfüllen von Hand vor Ort.</p>
+      </div>
+
+      <p id="etiketten-error" class="modal__error" hidden></p>
+
+      <div class="modal__buttons">
+        <button type="button" class="btn-ghost" data-close="1">Abbrechen</button>
+        <button type="button" id="etiketten-run-btn" class="btn-primary btn-primary--sm">Etiketten öffnen</button>
       </div>
     </div>
   </div>

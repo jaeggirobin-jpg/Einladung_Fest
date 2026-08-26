@@ -59,6 +59,17 @@ const rBegleitList    = document.getElementById('r-begleit-list');
 const responseSaveBtn = document.getElementById('response-save-btn');
 const responseFormErr = document.getElementById('response-form-error');
 
+const etikettenBtn    = document.getElementById('etiketten-btn');
+const etikettenModal  = document.getElementById('etiketten-modal');
+const etGaeste        = document.getElementById('et-gaeste');
+const etBegleit       = document.getElementById('et-begleit');
+const etCountGaeste   = document.getElementById('et-count-gaeste');
+const etCountBegleit  = document.getElementById('et-count-begleit');
+const etExtra         = document.getElementById('et-extra');
+const etLeer          = document.getElementById('et-leer');
+const etikettenRunBtn = document.getElementById('etiketten-run-btn');
+const etikettenError  = document.getElementById('etiketten-error');
+
 const importBtn      = document.getElementById('import-btn');
 const importModal    = document.getElementById('import-modal');
 const importFile     = document.getElementById('import-file');
@@ -184,7 +195,326 @@ document.addEventListener('keydown', (e) => {
   if (!importModal.hidden) closeImportModal();
   if (!deleteAllModal.hidden) closeDeleteAllModal();
   if (!responseModal.hidden) closeResponseModal();
+  if (!etikettenModal.hidden) closeEtikettenModal();
 });
+
+/* --- Namensetiketten ---------------------------------------------- */
+
+etikettenBtn.addEventListener('click', () => openEtikettenModal());
+etikettenModal.addEventListener('click', (e) => { if (e.target.dataset.close) closeEtikettenModal(); });
+etikettenRunBtn.addEventListener('click', erzeugeEtiketten);
+
+function openEtikettenModal() {
+  etikettenError.hidden = true;
+  const zugesagt = allRows.filter(r => r.status === 'angemeldet');
+  const begleit = zugesagt.reduce((n, r) => n + (Array.isArray(r.begleitpersonen) ? r.begleitpersonen.length : 0), 0);
+  etCountGaeste.textContent  = `(${zugesagt.length})`;
+  etCountBegleit.textContent = `(${begleit})`;
+  etikettenModal.hidden = false;
+}
+
+function closeEtikettenModal() { etikettenModal.hidden = true; }
+
+function sammleEtiketten() {
+  const namen = [];
+  const zugesagt = allRows.filter(r => r.status === 'angemeldet');
+
+  if (etGaeste.checked) {
+    zugesagt.forEach(r => {
+      const vorname = (r.vorname || '').trim();
+      const nachname = (r.nachname || '').trim();
+      if (vorname || nachname) namen.push({ vorname, nachname });
+    });
+  }
+
+  if (etBegleit.checked) {
+    zugesagt.forEach(r => {
+      (Array.isArray(r.begleitpersonen) ? r.begleitpersonen : []).forEach(p => {
+        const vorname = (p.vorname || '').trim();
+        const nachname = (p.nachname || '').trim();
+        if (vorname || nachname) namen.push({ vorname, nachname });
+      });
+    });
+  }
+
+  // Zusätzliche Namen: eine Zeile pro Person, erstes Wort = Vorname
+  etExtra.value.split(/\r?\n/).forEach(zeile => {
+    const t = zeile.trim();
+    if (!t) return;
+    const teile = t.split(/\s+/);
+    namen.push({ vorname: teile.shift(), nachname: teile.join(' ') });
+  });
+
+  // Alphabetisch nach Nachname, damit das Sortieren vor Ort leichter fällt
+  namen.sort((a, b) =>
+    (a.nachname || '').localeCompare(b.nachname || '', 'de') ||
+    (a.vorname  || '').localeCompare(b.vorname  || '', 'de'));
+
+  let leer = parseInt(etLeer.value, 10);
+  if (isNaN(leer) || leer < 0) leer = 0;
+  for (let i = 0; i < Math.min(leer, 100); i++) namen.push({ leer: true });
+
+  return namen;
+}
+
+async function erzeugeEtiketten() {
+  const namen = sammleEtiketten();
+  if (namen.length === 0) {
+    etikettenError.textContent = 'Keine Etiketten ausgewählt.';
+    etikettenError.hidden = false;
+    return;
+  }
+
+  etikettenRunBtn.disabled = true;
+  etikettenRunBtn.textContent = 'Erstelle …';
+  const logo = await ladeLogo();
+  etikettenRunBtn.disabled = false;
+  etikettenRunBtn.textContent = 'Etiketten öffnen';
+
+  const fenster = window.open('', '_blank');
+  if (!fenster) {
+    etikettenError.textContent = 'Das Fenster wurde blockiert. Bitte Pop-ups für diese Seite erlauben.';
+    etikettenError.hidden = false;
+    return;
+  }
+  fenster.document.write(etikettenHtml(namen, logo));
+  fenster.document.close();
+  closeEtikettenModal();
+}
+
+/**
+ * Logo einmal laden und direkt ins Etiketten-Dokument einbetten.
+ * So braucht der Druck keine Netzwerkverbindung und bleibt vektorscharf.
+ */
+async function ladeLogo() {
+  try {
+    const res = await fetch('../assets/logo.svg');
+    if (!res.ok) throw new Error('nicht gefunden');
+    const text = await res.text();
+    const viewBox = (text.match(/viewBox="([^"]+)"/) || [])[1];
+    if (!viewBox) throw new Error('kein viewBox');
+    const inner = text
+      .replace(/[\s\S]*?<svg[^>]*>/i, '')
+      .replace(/<\/svg>[\s\S]*$/i, '');
+    const [, , vbW, vbH] = viewBox.split(/[\s,]+/).map(Number);
+    return { viewBox, inner, ratio: vbW / vbH };
+  } catch (e) {
+    console.warn('SVG-Logo nicht verfügbar, nutze PNG:', e);
+    return null;
+  }
+}
+
+function etikettenHtml(namen, logo) {
+  const HOEHE_MM = 4.4;
+  const logoMarkup = logo
+    ? `<svg class="etikett__logo" viewBox="${logo.viewBox}" role="img" aria-label="Jäggi Vollmer"
+            style="height:${HOEHE_MM}mm;width:${(HOEHE_MM * logo.ratio).toFixed(2)}mm;"><use href="#jv-logo"/></svg>`
+    : `<img class="etikett__logo" src="${location.origin}/assets/logo.png" alt="Jäggi Vollmer"
+            style="height:${HOEHE_MM}mm;width:auto;">`;
+
+  const logoDefs = logo
+    ? `<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+         <symbol id="jv-logo" viewBox="${logo.viewBox}">${logo.inner}</symbol>
+       </svg>`
+    : '';
+
+  const etiketten = namen.map(n => n.leer
+    ? `<div class="etikett">
+         ${logoMarkup}
+         <div class="etikett__linie"></div>
+       </div>`
+    : `<div class="etikett">
+         ${logoMarkup}
+         <div class="etikett__namen">
+           <div class="etikett__vorname">${esc(n.vorname)}</div>
+           ${n.nachname ? `<div class="etikett__nachname">${esc(n.nachname)}</div>` : ''}
+         </div>
+       </div>`
+  ).join('\n');
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Namensetiketten (${namen.length})</title>
+<!-- Schrift nicht blockierend laden: klappt der Abruf nicht (z.B. Drucker-PC
+     ohne Internet), wird sofort Arial genutzt statt zu warten. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'">
+<style>
+  /* Etikettenformat: ein Etikett pro Seite */
+  @page { size: 49mm 23mm; margin: 0; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #F4F1E8;
+    font-family: 'DM Sans', Arial, 'Helvetica Neue', Helvetica, sans-serif;
+    color: #2A3138;
+  }
+
+  .leiste {
+    position: sticky;
+    top: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px 20px;
+    background: #fff;
+    border-bottom: 1px solid #E5DDC9;
+    box-shadow: 0 2px 10px rgba(42,49,56,0.06);
+    z-index: 10;
+  }
+  .leiste__titel { font-weight: 700; font-size: 15px; }
+  .leiste__info  { color: #7A858D; font-size: 13px; }
+  .leiste__btn {
+    margin-left: auto;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2A3138;
+    background: linear-gradient(135deg, #C9A877 0%, #BF853B 100%);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .leiste__btn:hover { filter: brightness(1.05); }
+
+  .blatt {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6mm;
+    padding: 20px;
+  }
+
+  .etikett {
+    width: 49mm;
+    height: 23mm;
+    padding: 1.4mm 2mm;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    /* Rahmen nur am Bildschirm zur Kontrolle */
+    border: 1px solid #E5DDC9;
+    border-radius: 1mm;
+  }
+
+  .etikett__logo {
+    display: block;
+    margin-bottom: 1.1mm;
+    flex-shrink: 0;
+  }
+
+  .etikett__namen {
+    width: 100%;
+    text-align: center;
+    line-height: 1.05;
+  }
+
+  .etikett__vorname {
+    font-weight: 700;
+    white-space: nowrap;
+    color: #2A3138;
+  }
+
+  .etikett__nachname {
+    font-weight: 400;
+    white-space: nowrap;
+    color: #4B575D;
+    margin-top: 0.4mm;
+  }
+
+  .etikett__linie {
+    width: 80%;
+    height: 0;
+    border-bottom: 0.3mm solid #C9A877;
+    margin-top: 6mm;
+  }
+
+  @media print {
+    body { background: #fff; }
+    .leiste { display: none; }
+    .blatt { display: block; padding: 0; gap: 0; }
+    .etikett {
+      border: none;
+      border-radius: 0;
+      page-break-after: always;
+      break-after: page;
+    }
+    .etikett:last-child { page-break-after: auto; break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="leiste">
+  <span class="leiste__titel">Namensetiketten</span>
+  <span class="leiste__info">${namen.length} Stück &middot; 49 × 23 mm &middot; ein Etikett pro Seite</span>
+  <button type="button" class="leiste__btn" onclick="window.print()">Drucken</button>
+</div>
+
+${logoDefs}
+
+<div class="blatt">
+${etiketten}
+</div>
+
+<script>
+  /* Schriftgrösse automatisch an die Namenslänge anpassen */
+  function passeAn(el, startPt, minPt) {
+    if (!el) return;
+    const platz = el.parentElement.clientWidth;
+    let size = startPt;
+    el.style.fontSize = size + 'pt';
+    while (el.scrollWidth > platz && size > minPt) {
+      size -= 0.25;
+      el.style.fontSize = size + 'pt';
+    }
+    // Notfall: sehr lange Namen dürfen umbrechen
+    if (el.scrollWidth > platz) {
+      el.style.whiteSpace = 'normal';
+      el.style.wordBreak = 'break-word';
+    }
+  }
+
+  function skaliereAlle() {
+    document.querySelectorAll('.etikett').forEach(function (k) {
+      passeAn(k.querySelector('.etikett__vorname'), 15, 6);
+      passeAn(k.querySelector('.etikett__nachname'), 11, 5.5);
+      // Falls der Block zu hoch wird, beide Zeilen weiter verkleinern
+      const namen = k.querySelector('.etikett__namen');
+      if (!namen) return;
+      let schutz = 40;
+      while (k.scrollHeight > k.clientHeight && schutz-- > 0) {
+        namen.querySelectorAll('div').forEach(function (z) {
+          const akt = parseFloat(getComputedStyle(z).fontSize);
+          z.style.fontSize = (akt * 0.94) + 'px';
+        });
+      }
+    });
+  }
+
+  /* Mehrfach ausfuehren: sofort, nach dem Laden der Schrift und vor dem
+     Drucken. Die Funktion startet immer bei der gleichen Groesse,
+     mehrfaches Aufrufen aendert das Ergebnis also nicht. */
+  skaliereAlle();
+  window.addEventListener('load', skaliereAlle);
+  window.addEventListener('beforeprint', skaliereAlle);
+  setTimeout(skaliereAlle, 400);
+  setTimeout(skaliereAlle, 1200);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(skaliereAlle).catch(function () {});
+  }
+<\/script>
+
+</body>
+</html>`;
+}
 
 /* --- Antwort erfassen (Admin manuell) ----------------------------- */
 
