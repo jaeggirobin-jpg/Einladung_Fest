@@ -293,9 +293,14 @@ async function ladeLogo() {
     const text = await res.text();
     const viewBox = (text.match(/viewBox="([^"]+)"/) || [])[1];
     if (!viewBox) throw new Error('kein viewBox');
+    // Farbklassen und Style-Block entfernen, damit das Logo auf dem
+    // Etikett die Schriftfarbe (schwarz) erbt.
     const inner = text
       .replace(/[\s\S]*?<svg[^>]*>/i, '')
-      .replace(/<\/svg>[\s\S]*$/i, '');
+      .replace(/<\/svg>[\s\S]*$/i, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/\sclass="[^"]*"/g, '')
+      .replace(/\sstyle="[^"]*fill:[^"]*"/gi, '');
     const [, , vbW, vbH] = viewBox.split(/[\s,]+/).map(Number);
     return { viewBox, inner, ratio: vbW / vbH };
   } catch (e) {
@@ -305,12 +310,22 @@ async function ladeLogo() {
 }
 
 function etikettenHtml(namen, logo) {
-  const HOEHE_MM = 4.4;
+  // Logo um 90 Grad gedreht an der linken Kante, ueber die volle Hoehe.
+  // Nach der Drehung wird aus der Logo-Laenge die Spaltenhoehe und
+  // aus der Logo-Hoehe die Spaltenbreite.
+  const RAND_MM   = 1.2;                       // Innenabstand oben/unten
+  const LAENGE_MM = 23 - 2 * RAND_MM;          // = 20.6mm, volle nutzbare Hoehe
+  const ratio     = logo ? logo.ratio : 3.31;  // PNG-Fallback hat 3.31
+  const SPALTE_MM = LAENGE_MM / ratio;         // Breite der Logo-Spalte
+
   const logoMarkup = logo
     ? `<svg class="etikett__logo" viewBox="${logo.viewBox}" role="img" aria-label="Jäggi Vollmer"
-            style="height:${HOEHE_MM}mm;width:${(HOEHE_MM * logo.ratio).toFixed(2)}mm;"><use href="#jv-logo"/></svg>`
+            style="width:${LAENGE_MM}mm;height:${SPALTE_MM.toFixed(2)}mm;"><use href="#jv-logo"/></svg>`
     : `<img class="etikett__logo" src="${location.origin}/assets/logo.png" alt="Jäggi Vollmer"
-            style="height:${HOEHE_MM}mm;width:auto;">`;
+            style="width:${LAENGE_MM}mm;height:auto;">`;
+
+  const logoSpalte = `<div class="etikett__logo-spalte"
+       style="width:${SPALTE_MM.toFixed(2)}mm;height:${LAENGE_MM}mm;">${logoMarkup}</div>`;
 
   const logoDefs = logo
     ? `<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
@@ -320,8 +335,8 @@ function etikettenHtml(namen, logo) {
 
   const etiketten = namen.map((n, i) => {
     const inhalt = n.leer
-      ? `${logoMarkup}<div class="etikett__linie"></div>`
-      : `${logoMarkup}
+      ? `${logoSpalte}<div class="etikett__namen"><div class="etikett__linie"></div></div>`
+      : `${logoSpalte}
          <div class="etikett__namen">
            <div class="etikett__vorname">${esc(n.vorname)}</div>
            ${n.nachname ? `<div class="etikett__nachname">${esc(n.nachname)}</div>` : ''}
@@ -405,26 +420,41 @@ function etikettenHtml(namen, logo) {
   .etikett {
     width: 49mm;
     height: 23mm;
-    padding: 1.4mm 2mm;
+    padding: 1.2mm 1.6mm 1.2mm 1.2mm;
     background: #fff;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
+    gap: 2mm;
     overflow: hidden;
     /* Rahmen nur am Bildschirm zur Kontrolle */
     border: 1px solid #E5DDC9;
     border-radius: 1mm;
   }
 
+  /* Logo hochkant an der linken Kante, ueber die volle Hoehe */
+  .etikett__logo-spalte {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+  }
+
   .etikett__logo {
     display: block;
-    margin-bottom: 1.1mm;
-    flex-shrink: 0;
+    /* nicht vom Flex-Container stauchen lassen: die Breite ist die
+       Logo-Laenge, erst die Drehung legt sie in die schmale Spalte */
+    flex: none;
+    transform: rotate(-90deg);
+    fill: #000;          /* Wortmarke schwarz */
+    color: #000;
+    background: none;
   }
 
   .etikett__namen {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
     text-align: center;
     line-height: 1.05;
   }
@@ -432,21 +462,21 @@ function etikettenHtml(namen, logo) {
   .etikett__vorname {
     font-weight: 700;
     white-space: nowrap;
-    color: #2A3138;
+    color: #000;
   }
 
   .etikett__nachname {
     font-weight: 400;
     white-space: nowrap;
-    color: #4B575D;
+    color: #000;
     margin-top: 0.4mm;
   }
 
   .etikett__linie {
-    width: 80%;
+    width: 92%;
     height: 0;
-    border-bottom: 0.3mm solid #C9A877;
-    margin-top: 6mm;
+    border-bottom: 0.3mm solid #8A8A8A;
+    margin: 3mm auto 0;
   }
 
   @media print {
@@ -458,6 +488,7 @@ function etikettenHtml(namen, logo) {
     .etikett {
       border: none;
       border-radius: 0;
+      background: none;   /* kein Hintergrund drucken */
       page-break-after: always;
       break-after: page;
     }
@@ -499,13 +530,18 @@ ${etiketten}
 
   function skaliereAlle() {
     document.querySelectorAll('.etikett').forEach(function (k) {
-      passeAn(k.querySelector('.etikett__vorname'), 15, 6);
-      passeAn(k.querySelector('.etikett__nachname'), 11, 5.5);
-      // Falls der Block zu hoch wird, beide Zeilen weiter verkleinern
       const namen = k.querySelector('.etikett__namen');
       if (!namen) return;
-      let schutz = 40;
-      while (k.scrollHeight > k.clientHeight && schutz-- > 0) {
+
+      passeAn(k.querySelector('.etikett__vorname'), 15, 6);
+      passeAn(k.querySelector('.etikett__nachname'), 11, 5.5);
+
+      /* Nur den Namensblock messen. Das gedrehte Logo ragt aus seiner
+         Layout-Box heraus, das Etikett selbst taugt daher nicht als Mass. */
+      const stil = getComputedStyle(k);
+      const platz = k.clientHeight - parseFloat(stil.paddingTop) - parseFloat(stil.paddingBottom);
+      let schutz = 30;
+      while (namen.getBoundingClientRect().height > platz && schutz-- > 0) {
         namen.querySelectorAll('div').forEach(function (z) {
           const akt = parseFloat(getComputedStyle(z).fontSize);
           z.style.fontSize = (akt * 0.94) + 'px';
