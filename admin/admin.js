@@ -318,19 +318,19 @@ function etikettenHtml(namen, logo) {
        </svg>`
     : '';
 
-  const etiketten = namen.map(n => n.leer
-    ? `<div class="etikett">
-         ${logoMarkup}
-         <div class="etikett__linie"></div>
-       </div>`
-    : `<div class="etikett">
-         ${logoMarkup}
+  const etiketten = namen.map((n, i) => {
+    const inhalt = n.leer
+      ? `${logoMarkup}<div class="etikett__linie"></div>`
+      : `${logoMarkup}
          <div class="etikett__namen">
            <div class="etikett__vorname">${esc(n.vorname)}</div>
            ${n.nachname ? `<div class="etikett__nachname">${esc(n.nachname)}</div>` : ''}
-         </div>
-       </div>`
-  ).join('\n');
+         </div>`;
+    return `<div class="etikett-wrap">
+              <span class="etikett__nr">${i + 1}</span>
+              <div class="etikett">${inhalt}</div>
+            </div>`;
+  }).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -382,12 +382,25 @@ function etikettenHtml(namen, logo) {
   }
   .leiste__btn:hover { filter: brightness(1.05); }
 
+  /* Am Bildschirm: alle Etiketten untereinander in einer Spalte */
   .blatt {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6mm;
-    padding: 20px;
+    flex-direction: column;
+    align-items: center;
+    gap: 4mm;
+    padding: 24px 20px 60px;
   }
+
+  .etikett__nr {
+    position: absolute;
+    left: -9mm;
+    color: #A9B0B5;
+    font-size: 10px;
+    width: 7mm;
+    text-align: right;
+  }
+
+  .etikett-wrap { position: relative; }
 
   .etikett {
     width: 49mm;
@@ -438,15 +451,17 @@ function etikettenHtml(namen, logo) {
 
   @media print {
     body { background: #fff; }
-    .leiste { display: none; }
+    .leiste, .etikett__nr { display: none; }
     .blatt { display: block; padding: 0; gap: 0; }
+    /* Wrapper aus dem Layout nehmen, damit der Seitenumbruch sauber greift */
+    .etikett-wrap { display: contents; }
     .etikett {
       border: none;
       border-radius: 0;
       page-break-after: always;
       break-after: page;
     }
-    .etikett:last-child { page-break-after: auto; break-after: auto; }
+    .etikett-wrap:last-child .etikett { page-break-after: auto; break-after: auto; }
   }
 </style>
 </head>
@@ -454,7 +469,7 @@ function etikettenHtml(namen, logo) {
 
 <div class="leiste">
   <span class="leiste__titel">Namensetiketten</span>
-  <span class="leiste__info">${namen.length} Stück &middot; 49 × 23 mm &middot; ein Etikett pro Seite</span>
+  <span class="leiste__info">${namen.length} Stück &middot; 49 × 23 mm &middot; hier untereinander, im Druck ein Etikett pro Seite</span>
   <button type="button" class="leiste__btn" onclick="window.print()">Drucken</button>
 </div>
 
