@@ -509,6 +509,8 @@ html, body {
   position: relative;
   width: 100%;
   max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
   background: var(--surface);
   border-radius: 14px;
   padding: 28px 28px 22px;
@@ -632,14 +634,154 @@ html, body {
 .check {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   padding: 7px 0;
   font-size: 14px;
   color: var(--text);
   cursor: pointer;
 }
-.check input { width: 16px; height: 16px; accent-color: var(--gold); cursor: pointer; }
+/* Native Darstellung erzwingen: .modal__field input setzt sonst
+   appearance:none und Padding, dann fehlt das Haekchen komplett. */
+.check input[type="checkbox"] {
+  -webkit-appearance: checkbox;
+  appearance: auto;
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  accent-color: var(--gold);
+  cursor: pointer;
+  flex: none;
+}
 .check__count { color: var(--text-muted); font-size: 13px; }
+
+/* --- Freie Eingabe mit Live-Vorschau -------------------------------- */
+
+.et-eingabe {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+@media (max-width: 520px) {
+  .et-eingabe { grid-template-columns: 1fr 1fr; }
+  .et-eingabe button { grid-column: 1 / -1; }
+}
+
+.et-vorschau {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.et-vorschau__titel {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* Etikett in Originalgroesse, fuer die Anzeige vergroessert */
+.et-buehne {
+  width: 98mm;
+  height: 46mm;
+  margin: 0 auto;
+  position: relative;
+}
+
+.et-buehne .etikett {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(2);
+  transform-origin: top left;
+  width: 49mm;
+  height: 23mm;
+  padding: 1.2mm 1.6mm 1.2mm 1.2mm;
+  background: #fff;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2mm;
+  overflow: hidden;
+  border: 0.2mm solid var(--border);
+  border-radius: 1mm;
+  font-family: 'DM Sans', Arial, Helvetica, sans-serif;
+}
+
+.et-buehne .etikett__logo-spalte {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.et-buehne .etikett__logo {
+  display: block;
+  flex: none;
+  transform: rotate(-90deg);
+  fill: #000;
+}
+
+.et-buehne .etikett__namen {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  line-height: 1.05;
+}
+
+.et-buehne .etikett__vorname {
+  font-weight: 700;
+  white-space: nowrap;
+  color: #000;
+}
+
+.et-buehne .etikett__nachname {
+  font-weight: 400;
+  white-space: nowrap;
+  color: #000;
+  margin-top: 0.4mm;
+}
+
+/* --- Hinzugefuegte Namen -------------------------------------------- */
+
+.et-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.et-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px 5px 11px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.et-chip button {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.et-chip button:hover { color: var(--no); }
 
 .modal__error {
   color: var(--no);

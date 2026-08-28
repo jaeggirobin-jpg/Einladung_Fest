@@ -65,8 +65,15 @@ const etGaeste        = document.getElementById('et-gaeste');
 const etBegleit       = document.getElementById('et-begleit');
 const etCountGaeste   = document.getElementById('et-count-gaeste');
 const etCountBegleit  = document.getElementById('et-count-begleit');
-const etExtra         = document.getElementById('et-extra');
+const etVorname       = document.getElementById('et-vorname');
+const etNachname      = document.getElementById('et-nachname');
+const etAddBtn        = document.getElementById('et-add');
+const etBuehne        = document.getElementById('et-buehne');
+const etChips         = document.getElementById('et-chips');
 const etLeer          = document.getElementById('et-leer');
+
+let extraNamen = [];   // spontan hinzugefügte Personen
+let logoCache  = null; // einmal geladenes SVG-Logo
 const etikettenRunBtn = document.getElementById('etiketten-run-btn');
 const etikettenError  = document.getElementById('etiketten-error');
 
@@ -204,16 +211,153 @@ etikettenBtn.addEventListener('click', () => openEtikettenModal());
 etikettenModal.addEventListener('click', (e) => { if (e.target.dataset.close) closeEtikettenModal(); });
 etikettenRunBtn.addEventListener('click', erzeugeEtiketten);
 
-function openEtikettenModal() {
+async function openEtikettenModal() {
   etikettenError.hidden = true;
   const zugesagt = allRows.filter(r => r.status === 'angemeldet');
   const begleit = zugesagt.reduce((n, r) => n + (Array.isArray(r.begleitpersonen) ? r.begleitpersonen.length : 0), 0);
   etCountGaeste.textContent  = `(${zugesagt.length})`;
   etCountBegleit.textContent = `(${begleit})`;
   etikettenModal.hidden = false;
+
+  if (!logoCache) {
+    logoCache = await ladeLogo();
+    if (logoCache) sorgeFuerLogoSymbol();
+  }
+  zeichneVorschau();
+  zeichneChips();
+  aktualisiereAnzahl();
 }
 
 function closeEtikettenModal() { etikettenModal.hidden = true; }
+
+/* Logo einmalig als <symbol> in die Admin-Seite legen, damit die
+   Vorschau dasselbe Logo nutzt wie das Druckdokument. */
+function sorgeFuerLogoSymbol() {
+  if (document.getElementById('jv-logo')) return;
+  const halter = document.createElement('div');
+  halter.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+  halter.innerHTML = `<svg aria-hidden="true"><symbol id="jv-logo" viewBox="${logoCache.viewBox}">${logoCache.inner}</symbol></svg>`;
+  document.body.appendChild(halter);
+}
+
+/* Masse des Etiketts: nach der Drehung wird aus der Logo-Laenge die
+   Spaltenhoehe und aus der Logo-Hoehe die Spaltenbreite. */
+function etikettMasse(logo) {
+  const RAND = 1.2;
+  const laenge = 23 - 2 * RAND;
+  const ratio = logo ? logo.ratio : 3.31;
+  return { laenge, spalte: laenge / ratio };
+}
+
+function logoSpalteHtml(logo) {
+  const { laenge, spalte } = etikettMasse(logo);
+  const inhalt = logo
+    ? `<svg class="etikett__logo" viewBox="${logo.viewBox}" role="img" aria-label="Jäggi Vollmer"
+            style="width:${laenge}mm;height:${spalte.toFixed(2)}mm;"><use href="#jv-logo"/></svg>`
+    : `<img class="etikett__logo" src="${location.origin}/assets/logo.png" alt="Jäggi Vollmer"
+            style="width:${laenge}mm;height:auto;">`;
+  return `<div class="etikett__logo-spalte" style="width:${spalte.toFixed(2)}mm;height:${laenge}mm;">${inhalt}</div>`;
+}
+
+function etikettInhalt(n, logo) {
+  if (n.leer) {
+    return `${logoSpalteHtml(logo)}<div class="etikett__namen"><div class="etikett__linie"></div></div>`;
+  }
+  return `${logoSpalteHtml(logo)}
+    <div class="etikett__namen">
+      <div class="etikett__vorname">${esc(n.vorname)}</div>
+      ${n.nachname ? `<div class="etikett__nachname">${esc(n.nachname)}</div>` : ''}
+    </div>`;
+}
+
+/* --- Live-Vorschau -------------------------------------------------- */
+
+[etVorname, etNachname].forEach(f => f.addEventListener('input', zeichneVorschau));
+etAddBtn.addEventListener('click', fuegeNamenHinzu);
+etNachname.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fuegeNamenHinzu(); } });
+etVorname.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fuegeNamenHinzu(); } });
+etLeer.addEventListener('input', aktualisiereAnzahl);
+etGaeste.addEventListener('change', aktualisiereAnzahl);
+etBegleit.addEventListener('change', aktualisiereAnzahl);
+
+function zeichneVorschau() {
+  const vorname  = etVorname.value.trim();
+  const nachname = etNachname.value.trim();
+  const beispiel = !vorname && !nachname;
+  etBuehne.innerHTML = `<div class="etikett">${etikettInhalt(
+    { vorname: vorname || 'Vorname', nachname: beispiel ? 'Nachname' : nachname },
+    logoCache
+  )}</div>`;
+  etBuehne.style.opacity = beispiel ? '0.45' : '1';
+  passeVorschauSchriftAn();
+}
+
+/* Gleiche Logik wie im Druckdokument, hier fuer die Vorschau */
+function passeVorschauSchriftAn() {
+  const etikett = etBuehne.querySelector('.etikett');
+  const namen = etBuehne.querySelector('.etikett__namen');
+  if (!etikett || !namen) return;
+
+  const anpassen = (el, startPt, minPt) => {
+    if (!el) return;
+    const platz = el.parentElement.clientWidth;
+    let size = startPt;
+    el.style.fontSize = size + 'pt';
+    while (el.scrollWidth > platz && size > minPt) {
+      size -= 0.25;
+      el.style.fontSize = size + 'pt';
+    }
+    if (el.scrollWidth > platz) {
+      el.style.whiteSpace = 'normal';
+      el.style.wordBreak = 'break-word';
+    }
+  };
+
+  anpassen(etikett.querySelector('.etikett__vorname'), 15, 6);
+  anpassen(etikett.querySelector('.etikett__nachname'), 11, 5.5);
+
+  const stil = getComputedStyle(etikett);
+  const platz = etikett.clientHeight - parseFloat(stil.paddingTop) - parseFloat(stil.paddingBottom);
+  let schutz = 30;
+  while (namen.getBoundingClientRect().height / 2 > platz && schutz-- > 0) {
+    namen.querySelectorAll('div').forEach(z => {
+      const akt = parseFloat(getComputedStyle(z).fontSize);
+      z.style.fontSize = (akt * 0.94) + 'px';
+    });
+  }
+}
+
+function fuegeNamenHinzu() {
+  const vorname  = etVorname.value.trim();
+  const nachname = etNachname.value.trim();
+  if (!vorname && !nachname) return;
+  extraNamen.push({ vorname, nachname });
+  etVorname.value = '';
+  etNachname.value = '';
+  etVorname.focus();
+  zeichneVorschau();
+  zeichneChips();
+  aktualisiereAnzahl();
+}
+
+function zeichneChips() {
+  etChips.innerHTML = extraNamen.map((n, i) => `
+    <span class="et-chip">${esc(`${n.vorname} ${n.nachname}`.trim())}
+      <button type="button" data-idx="${i}" title="Entfernen" aria-label="Entfernen">×</button>
+    </span>`).join('');
+}
+
+etChips.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-idx]');
+  if (!btn) return;
+  extraNamen.splice(parseInt(btn.dataset.idx, 10), 1);
+  zeichneChips();
+  aktualisiereAnzahl();
+});
+
+function aktualisiereAnzahl() {
+  etikettenRunBtn.textContent = `Etiketten öffnen (${sammleEtiketten().length})`;
+}
 
 function sammleEtiketten() {
   const namen = [];
@@ -237,13 +381,8 @@ function sammleEtiketten() {
     });
   }
 
-  // Zusätzliche Namen: eine Zeile pro Person, erstes Wort = Vorname
-  etExtra.value.split(/\r?\n/).forEach(zeile => {
-    const t = zeile.trim();
-    if (!t) return;
-    const teile = t.split(/\s+/);
-    namen.push({ vorname: teile.shift(), nachname: teile.join(' ') });
-  });
+  // Spontan hinzugefügte Personen
+  extraNamen.forEach(n => namen.push({ vorname: n.vorname, nachname: n.nachname }));
 
   // Alphabetisch nach Nachname, damit das Sortieren vor Ort leichter fällt
   namen.sort((a, b) =>
@@ -265,11 +404,14 @@ async function erzeugeEtiketten() {
     return;
   }
 
-  etikettenRunBtn.disabled = true;
-  etikettenRunBtn.textContent = 'Erstelle …';
-  const logo = await ladeLogo();
-  etikettenRunBtn.disabled = false;
-  etikettenRunBtn.textContent = 'Etiketten öffnen';
+  if (!logoCache) {
+    etikettenRunBtn.disabled = true;
+    etikettenRunBtn.textContent = 'Erstelle …';
+    logoCache = await ladeLogo();
+    etikettenRunBtn.disabled = false;
+    aktualisiereAnzahl();
+  }
+  const logo = logoCache;
 
   const fenster = window.open('', '_blank');
   if (!fenster) {
@@ -310,42 +452,17 @@ async function ladeLogo() {
 }
 
 function etikettenHtml(namen, logo) {
-  // Logo um 90 Grad gedreht an der linken Kante, ueber die volle Hoehe.
-  // Nach der Drehung wird aus der Logo-Laenge die Spaltenhoehe und
-  // aus der Logo-Hoehe die Spaltenbreite.
-  const RAND_MM   = 1.2;                       // Innenabstand oben/unten
-  const LAENGE_MM = 23 - 2 * RAND_MM;          // = 20.6mm, volle nutzbare Hoehe
-  const ratio     = logo ? logo.ratio : 3.31;  // PNG-Fallback hat 3.31
-  const SPALTE_MM = LAENGE_MM / ratio;         // Breite der Logo-Spalte
-
-  const logoMarkup = logo
-    ? `<svg class="etikett__logo" viewBox="${logo.viewBox}" role="img" aria-label="Jäggi Vollmer"
-            style="width:${LAENGE_MM}mm;height:${SPALTE_MM.toFixed(2)}mm;"><use href="#jv-logo"/></svg>`
-    : `<img class="etikett__logo" src="${location.origin}/assets/logo.png" alt="Jäggi Vollmer"
-            style="width:${LAENGE_MM}mm;height:auto;">`;
-
-  const logoSpalte = `<div class="etikett__logo-spalte"
-       style="width:${SPALTE_MM.toFixed(2)}mm;height:${LAENGE_MM}mm;">${logoMarkup}</div>`;
-
   const logoDefs = logo
     ? `<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
          <symbol id="jv-logo" viewBox="${logo.viewBox}">${logo.inner}</symbol>
        </svg>`
     : '';
 
-  const etiketten = namen.map((n, i) => {
-    const inhalt = n.leer
-      ? `${logoSpalte}<div class="etikett__namen"><div class="etikett__linie"></div></div>`
-      : `${logoSpalte}
-         <div class="etikett__namen">
-           <div class="etikett__vorname">${esc(n.vorname)}</div>
-           ${n.nachname ? `<div class="etikett__nachname">${esc(n.nachname)}</div>` : ''}
-         </div>`;
-    return `<div class="etikett-wrap">
-              <span class="etikett__nr">${i + 1}</span>
-              <div class="etikett">${inhalt}</div>
-            </div>`;
-  }).join('\n');
+  const etiketten = namen.map((n, i) => `
+    <div class="etikett-wrap">
+      <span class="etikett__nr">${i + 1}</span>
+      <div class="etikett">${etikettInhalt(n, logo)}</div>
+    </div>`).join('\n');
 
   return `<!DOCTYPE html>
 <html lang="de">
