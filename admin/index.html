@@ -188,9 +188,19 @@
       </div>
 
       <div class="modal__field">
-        <label for="et-extra">Zusätzliche Namen <span class="modal__optional">(freiwillig)</span></label>
-        <textarea id="et-extra" rows="3" placeholder="Ein Name pro Zeile, z.B.&#10;Anna Muster&#10;Peter Kunz"></textarea>
-        <p class="modal__hint">Für Gäste, die spontan kommen und nicht auf der Liste stehen.</p>
+        <label for="et-vorname">Weitere Person – für spontane Gäste</label>
+        <div class="et-eingabe">
+          <input type="text" id="et-vorname" placeholder="Vorname" maxlength="60" autocomplete="off">
+          <input type="text" id="et-nachname" placeholder="Nachname" maxlength="60" autocomplete="off">
+          <button type="button" id="et-add" class="btn-ghost">Hinzufügen</button>
+        </div>
+
+        <div class="et-vorschau">
+          <span class="et-vorschau__titel">Vorschau · Originalgrösse 49 × 23 mm, doppelt dargestellt</span>
+          <div class="et-buehne" id="et-buehne"></div>
+        </div>
+
+        <div class="et-chips" id="et-chips"></div>
       </div>
 
       <div class="modal__field">
