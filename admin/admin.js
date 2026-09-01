@@ -13,6 +13,7 @@ const dashboard   = document.getElementById('dashboard');
 const refreshBtn  = document.getElementById('refresh-btn');
 const csvBtn      = document.getElementById('csv-btn');
 const offeneBtn   = document.getElementById('offene-mails-btn');
+const zusagenBtn  = document.getElementById('zusagen-mails-btn');
 const logoutBtn   = document.getElementById('logout-btn');
 const searchInput = document.getElementById('search-input');
 const tbody       = document.getElementById('tbody');
@@ -128,7 +129,14 @@ logoutBtn.addEventListener('click', () => {
 
 refreshBtn.addEventListener('click', () => loadAndRender());
 csvBtn.addEventListener('click', exportCsv);
-offeneBtn.addEventListener('click', exportOffeneMails);
+offeneBtn.addEventListener('click', () => exportMails('offen', {
+  datei: 'offene-emails',
+  leer:  'Alle Gäste haben bereits geantwortet – keine offenen E-Mail-Adressen.'
+}));
+zusagenBtn.addEventListener('click', () => exportMails('angemeldet', {
+  datei: 'zusagen-emails',
+  leer:  'Es liegen noch keine Zusagen vor.'
+}));
 
 document.querySelectorAll('.filter-btn').forEach(b => {
   b.addEventListener('click', () => {
@@ -1450,27 +1458,30 @@ function csvCell(s) {
   return v;
 }
 
-/* --- Export: E-Mails ohne Rückmeldung ----------------------------- */
+/* --- Export: E-Mail-Adressen nach Status --------------------------- */
 
-function exportOffeneMails() {
+function exportMails(status, texte) {
   const mails = allRows
-    .filter(r => r.status === 'offen')
-    .map(r => (r.email || '').trim())
+    .filter(r => r.status === status)
+    .map(r => (r.email || '').trim().toLowerCase())
     .filter(Boolean);
 
-  if (mails.length === 0) {
-    alert('Alle Gäste haben bereits geantwortet – keine offenen E-Mail-Adressen.');
+  // Doppelte Adressen entfernen, alphabetisch sortieren
+  const eindeutig = [...new Set(mails)].sort((a, b) => a.localeCompare(b, 'de'));
+
+  if (eindeutig.length === 0) {
+    alert(texte.leer);
     return;
   }
 
   // Eine Adresse pro Zeile, untereinander
-  const csv = '﻿' + ['E-Mail', ...mails].join('\n');
+  const csv = '﻿' + ['E-Mail', ...eindeutig].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   const date = new Date().toISOString().slice(0, 10);
   a.href = url;
-  a.download = `offene-emails_${date}.csv`;
+  a.download = `${texte.datei}_${date}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
