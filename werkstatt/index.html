@@ -41,6 +41,7 @@
         </div>
         <div class="topbar__right">
           <button type="button" id="refresh-btn" class="btn-ghost">Aktualisieren</button>
+          <button type="button" id="album-btn" class="btn-primary">Fotoalbum erstellen</button>
           <button type="button" id="csv-btn" class="btn-ghost">Texte als CSV</button>
           <button type="button" id="logout-btn" class="btn-ghost btn-ghost--danger">Schliessen</button>
         </div>
@@ -80,6 +81,38 @@
     </div>
 
   </main>
+
+  <div id="album-modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="album-title">
+    <div class="modal__backdrop" data-close="1"></div>
+    <div class="modal__card">
+      <h3 id="album-title" class="modal__title">Fotoalbum erstellen</h3>
+      <p class="modal__text">
+        A4 quer, ein Gruss pro Seite, mit Titelseite, Widmung und Namensverzeichnis.
+        Das Album öffnet sich in einem neuen Fenster – von dort druckst du es als PDF.
+      </p>
+
+      <div class="modal__field">
+        <label for="album-widmung">Widmung <span class="modal__optional">(zweite Seite)</span></label>
+        <textarea id="album-widmung" rows="5"></textarea>
+        <p class="modal__hint">Deine Worte an Felix und Sonja. Zeilenumbrüche bleiben erhalten.</p>
+      </div>
+
+      <div class="modal__field">
+        <div class="album-auswahl__kopf">
+          <label>Diese Grüsse kommen ins Album</label>
+          <button type="button" id="album-alle" class="linkbtn">Alle auswählen</button>
+        </div>
+        <div class="album-liste" id="album-liste"></div>
+      </div>
+
+      <p id="album-error" class="modal__error" hidden></p>
+
+      <div class="modal__buttons">
+        <button type="button" class="btn-ghost" data-close="1">Abbrechen</button>
+        <button type="button" id="album-run" class="btn-primary">Album öffnen</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="app.js"></script>
 </body>
