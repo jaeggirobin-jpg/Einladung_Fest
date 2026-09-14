@@ -407,7 +407,6 @@ function albumHtml(gruesse, widmung, logo) {
         <div class="text__linie"></div>
         <p class="text__nachricht">${esc(r.nachricht)}</p>
         ${worte.length ? `<p class="text__worte">${worte.map(w => esc(w)).join('<span class="punkt">·</span>')}</p>` : ''}
-        <p class="text__datum">${formatDate(r.created_at)}</p>
       </div>
       <span class="seitenzahl">${i + 1}</span>
     </section>`;
@@ -507,10 +506,29 @@ function albumHtml(gruesse, widmung, logo) {
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
   }
-  .foto img { width: 100%; height: 100%; object-fit: contain; display: block; }
-  /* Hochformat fuellt den Rahmen, Querformat bleibt vollstaendig sichtbar */
-  .foto img.hoch { object-fit: cover; }
+  /* Jedes Foto fuellt seine Flaeche - nie ein Rahmen ringsum */
+  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .foto__fehlt { color: #A9B0B5; font-size: 10pt; }
+
+  /* Querformat bekommt ein eigenes Seitenlayout: Foto randabfallend
+     ueber die volle Breite, darunter das Textband. */
+  .seite--quer { flex-direction: column; padding: 0; gap: 0; }
+  .seite--quer .foto {
+    width: 100%; height: 140mm; flex: none; background: none;
+  }
+  .seite--quer .foto img {
+    /* Etwas nach oben versetzt, dort stehen bei Gruppenbildern die Gesichter */
+    object-position: center 42%;
+  }
+  .seite--quer .text {
+    flex: 1; height: auto; align-items: center; text-align: center;
+    padding: 10mm 24mm 12mm;
+  }
+  /* Im schmaleren Band enger setzen als in der Hochformat-Spalte */
+  .seite--quer .text__name { font-size: 18pt; }
+  .seite--quer .text__linie { margin: 3.5mm auto 4.5mm; }
+  .seite--quer .text__nachricht { max-width: 185mm; }
+  .seite--quer .text__worte { margin-top: 5mm; }
 
   .text {
     flex: 1; min-width: 0; height: 100%;
@@ -531,7 +549,6 @@ function albumHtml(gruesse, widmung, logo) {
     text-transform: uppercase; color: #BE853B;
   }
   .text__worte .punkt { margin: 0 3mm; color: #DCC9A4; }
-  .text__datum { margin: 8mm 0 0; font-size: 9pt; color: #9AA1A6; letter-spacing: 1px; }
 
   .seitenzahl {
     position: absolute; right: 15mm; bottom: 11mm;
@@ -624,8 +641,40 @@ ${seiten}
     }
 
     function pruefeAusrichtung(bild) {
-      if (bild.naturalWidth && bild.naturalHeight && bild.naturalHeight >= bild.naturalWidth) {
-        bild.classList.add('hoch');
+      if (!bild.naturalWidth || !bild.naturalHeight) return;
+      var seite = bild.closest('.seite');
+      if (!seite) return;
+      // Deutlich breiter als hoch: eigenes Layout mit Foto oben
+      if (bild.naturalWidth > bild.naturalHeight * 1.15) {
+        seite.classList.add('seite--quer');
+      }
+      passeTextAn(seite);
+    }
+
+    /* Lange Nachrichten verkleinern, bis der Textblock ins Band passt.
+       Gemessen wird der Abstand vom ersten zum letzten Element - bei
+       zentriertem Inhalt taugt scrollHeight dafuer nicht. */
+    function passeTextAn(seite) {
+      var block = seite.querySelector('.text');
+      var nachricht = seite.querySelector('.text__nachricht');
+      if (!block || !nachricht || !block.children.length) return;
+
+      var stil = window.getComputedStyle(block);
+      var platz = block.clientHeight -
+        parseFloat(stil.paddingTop) - parseFloat(stil.paddingBottom);
+
+      function inhaltsHoehe() {
+        var k = block.children;
+        var oben = k[0].getBoundingClientRect().top;
+        var unten = k[k.length - 1].getBoundingClientRect().bottom;
+        return unten - oben;
+      }
+
+      var schutz = 10;
+      while (inhaltsHoehe() > platz - 2 && schutz-- > 0) {
+        var akt = parseFloat(window.getComputedStyle(nachricht).fontSize);
+        nachricht.style.fontSize = (akt * 0.94) + 'px';
+        nachricht.style.lineHeight = '1.6';
       }
     }
 
