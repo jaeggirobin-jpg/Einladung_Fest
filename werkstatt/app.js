@@ -510,24 +510,28 @@ function albumHtml(gruesse, widmung, logo) {
   .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .foto__fehlt { color: #A9B0B5; font-size: 10pt; }
 
-  /* Querformat bekommt ein eigenes Seitenlayout: Foto randabfallend
-     ueber die volle Breite, darunter das Textband. */
-  .seite--quer { flex-direction: column; padding: 0; gap: 0; }
+  /* Querformat: eigenes Seitenlayout. Das Foto bekommt eine feste Hoehe,
+     die Breite ergibt sich aus seinem eigenen Seitenverhaeltnis - dadurch
+     wird weder beschnitten noch gerahmt. Darunter bleibt Platz fuer Text. */
+  .seite--quer { flex-direction: column; align-items: center; padding: 14mm 24mm 12mm; gap: 9mm; }
   .seite--quer .foto {
-    width: 100%; height: 140mm; flex: none; background: none;
+    height: 112mm; width: auto; max-width: 100%; flex: none; background: none;
   }
   .seite--quer .foto img {
     /* Etwas nach oben versetzt, dort stehen bei Gruppenbildern die Gesichter */
     object-position: center 42%;
   }
   .seite--quer .text {
-    flex: 1; height: auto; align-items: center; text-align: center;
-    padding: 10mm 24mm 12mm;
+    /* min-height: 0 ist entscheidend - sonst waechst der Block mit dem
+       Text ueber die Seite hinaus und laesst sich nicht mehr messen. */
+    flex: 1; min-height: 0; width: 100%; height: auto;
+    align-items: center; text-align: center;
+    padding: 0 6mm;
   }
   /* Im schmaleren Band enger setzen als in der Hochformat-Spalte */
   .seite--quer .text__name { font-size: 18pt; }
   .seite--quer .text__linie { margin: 3.5mm auto 4.5mm; }
-  .seite--quer .text__nachricht { max-width: 185mm; }
+  .seite--quer .text__nachricht { max-width: 205mm; }
   .seite--quer .text__worte { margin-top: 5mm; }
 
   .text {
@@ -644,38 +648,70 @@ ${seiten}
       if (!bild.naturalWidth || !bild.naturalHeight) return;
       var seite = bild.closest('.seite');
       if (!seite) return;
+      var verhaeltnis = bild.naturalWidth / bild.naturalHeight;
+
       // Deutlich breiter als hoch: eigenes Layout mit Foto oben
-      if (bild.naturalWidth > bild.naturalHeight * 1.15) {
+      if (verhaeltnis > 1.15) {
         seite.classList.add('seite--quer');
+        var rahmen = seite.querySelector('.foto');
+        if (rahmen) {
+          var text = seite.querySelector('.text__nachricht');
+          var laenge = text ? text.textContent.trim().length : 0;
+          // Je laenger der Gruss, desto kleiner das Foto - lieber ein
+          // ruhiges Bild als ein winzig gesetzter Text.
+          var hoehe = laenge > 900 ? 74 : laenge > 650 ? 86 : laenge > 400 ? 98 : 112;
+          // Nie breiter als der Satzspiegel: sonst muesste beschnitten werden
+          hoehe = Math.min(hoehe, 249 / verhaeltnis);
+          rahmen.style.height = hoehe.toFixed(1) + 'mm';
+          rahmen.style.width = (hoehe * verhaeltnis).toFixed(1) + 'mm';
+        }
       }
       passeTextAn(seite);
     }
 
-    /* Lange Nachrichten verkleinern, bis der Textblock ins Band passt.
-       Gemessen wird der Abstand vom ersten zum letzten Element - bei
-       zentriertem Inhalt taugt scrollHeight dafuer nicht. */
+    /* Lange Nachrichten verkleinern, bis der Textblock in seinen Bereich
+       passt. Gemessen wird der Abstand vom ersten zum letzten Element -
+       bei zentriertem Inhalt taugt scrollHeight dafuer nicht. */
     function passeTextAn(seite) {
       var block = seite.querySelector('.text');
       var nachricht = seite.querySelector('.text__nachricht');
       if (!block || !nachricht || !block.children.length) return;
 
+      // Immer von der Ausgangsgroesse aus rechnen, damit ein zweiter
+      // Durchgang nach dem Laden der Schrift nicht doppelt verkleinert
+      nachricht.style.fontSize = '';
+      nachricht.style.lineHeight = '';
+
       var stil = window.getComputedStyle(block);
+      var seitenStil = window.getComputedStyle(seite);
       var platz = block.clientHeight -
         parseFloat(stil.paddingTop) - parseFloat(stil.paddingBottom);
+      // Zweite Schranke: der untere Seitenrand. Damit wird auch dann
+      // richtig gemessen, wenn der Block selbst mitwaechst.
+      var oben = block.getBoundingClientRect().top + parseFloat(stil.paddingTop);
+      var boden = seite.getBoundingClientRect().bottom -
+        parseFloat(seitenStil.paddingBottom);
+      platz = Math.min(platz, boden - oben);
+      var start = parseFloat(window.getComputedStyle(nachricht).fontSize);
+      var minimum = start * 0.66;   // rund 8.5pt, darunter wird es unleserlich
 
       function inhaltsHoehe() {
         var k = block.children;
-        var oben = k[0].getBoundingClientRect().top;
-        var unten = k[k.length - 1].getBoundingClientRect().bottom;
-        return unten - oben;
+        return k[k.length - 1].getBoundingClientRect().bottom -
+               k[0].getBoundingClientRect().top;
       }
 
-      var schutz = 10;
-      while (inhaltsHoehe() > platz - 2 && schutz-- > 0) {
-        var akt = parseFloat(window.getComputedStyle(nachricht).fontSize);
-        nachricht.style.fontSize = (akt * 0.94) + 'px';
-        nachricht.style.lineHeight = '1.6';
+      var groesse = start;
+      var schutz = 20;
+      while (inhaltsHoehe() > platz - 2 && groesse > minimum && schutz-- > 0) {
+        groesse *= 0.96;
+        nachricht.style.fontSize = groesse + 'px';
+        nachricht.style.lineHeight = '1.62';
       }
+    }
+
+    function alleTexteAnpassen() {
+      document.querySelectorAll('.seite--gruss').forEach(passeTextAn);
     }
 
     if (fotos.length === 0) {
@@ -688,6 +724,17 @@ ${seiten}
       bild.addEventListener('load', function () { pruefeAusrichtung(bild); melde(); });
       bild.addEventListener('error', melde);
     });
+
+    /* Die Serifenschrift laedt nach. Sie ist breiter als die
+       Ersatzschrift, deshalb muss danach nochmals gemessen werden -
+       sonst laufen lange Texte aus ihrem Bereich heraus. */
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(alleTexteAnpassen).catch(function () {});
+    }
+    window.addEventListener('load', alleTexteAnpassen);
+    window.addEventListener('beforeprint', alleTexteAnpassen);
+    setTimeout(alleTexteAnpassen, 1500);
+    setTimeout(alleTexteAnpassen, 4000);
   })();
 <\/script>
 
