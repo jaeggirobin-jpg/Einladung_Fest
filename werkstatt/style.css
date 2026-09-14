@@ -341,3 +341,118 @@ html, body {
   font-style: italic;
   padding: 60px 20px;
 }
+
+/* --- Album-Auswahl --------------------------------------------------- */
+
+.modal__optional {
+  color: var(--text-muted);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.modal__field textarea {
+  width: 100%;
+  padding: 11px 13px;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+}
+.modal__field textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.15);
+}
+
+.album-auswahl__kopf {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.linkbtn {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--gold);
+  cursor: pointer;
+  text-decoration: underline;
+}
+.linkbtn:hover { color: #9A6B18; }
+
+.album-liste {
+  margin-top: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--cream);
+}
+
+.album-zeile {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 11px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.album-zeile:last-child { border-bottom: none; }
+.album-zeile:hover { background: rgba(191, 133, 59, 0.06); }
+
+.album-zeile input[type="checkbox"] {
+  -webkit-appearance: checkbox;
+  appearance: auto;
+  width: 17px;
+  height: 17px;
+  min-width: 17px;
+  padding: 0;
+  margin: 0;
+  accent-color: var(--gold);
+  cursor: pointer;
+  flex: none;
+}
+
+.album-zeile img {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  border-radius: 5px;
+  flex: none;
+  background: var(--border);
+}
+
+.album-zeile__kein {
+  width: 38px;
+  height: 38px;
+  border-radius: 5px;
+  background: var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  flex: none;
+}
+
+.album-zeile__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 13.5px;
+}
+.album-zeile__text strong { color: var(--slate-dark); font-weight: 600; }
+
+.album-zeile__datum {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  margin-top: 1px;
+}
