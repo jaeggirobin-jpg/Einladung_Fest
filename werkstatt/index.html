@@ -74,6 +74,28 @@
         <p id="settings-error" class="panel__error" hidden></p>
       </section>
 
+      <section class="panel">
+        <div class="panel__head">
+          <h2 class="panel__title">Eigene Bilder fürs Album</h2>
+          <span id="bilder-count" class="status-badge">–</span>
+        </div>
+        <p class="panel__hint">
+          Diese Bilder kommen im Album nach den Grüssen, in der Reihenfolge von oben
+          nach unten. Ziehen oder die Pfeile verschieben ein Bild, alles wird sofort
+          gespeichert.
+        </p>
+
+        <div class="panel__row">
+          <input type="file" id="bilder-input" accept="image/*" multiple hidden>
+          <button type="button" id="bilder-btn" class="btn-primary">Bilder hinzufügen</button>
+          <span id="bilder-status" class="bilder__status" hidden></span>
+        </div>
+
+        <div class="bilder" id="bilder-liste"></div>
+
+        <p id="bilder-error" class="panel__error" hidden></p>
+      </section>
+
       <section id="gallery" class="gallery">
         <p class="empty" id="empty-hint">Lade Grüsse …</p>
       </section>
@@ -87,8 +109,9 @@
     <div class="modal__card">
       <h3 id="album-title" class="modal__title">Fotoalbum erstellen</h3>
       <p class="modal__text">
-        A4 quer, ein Gruss pro Seite, mit Titelseite, Widmung und Namensverzeichnis.
-        Das Album öffnet sich in einem neuen Fenster – von dort druckst du es als PDF.
+        A4 quer, ein Gruss pro Seite, danach die eigenen Bilder, dazu Titelseite,
+        Widmung und Namensverzeichnis. Das Album öffnet sich in einem neuen Fenster –
+        von dort druckst du es als PDF.
       </p>
 
       <div class="modal__field">
@@ -103,6 +126,14 @@
           <button type="button" id="album-alle" class="linkbtn">Alle auswählen</button>
         </div>
         <div class="album-liste" id="album-liste"></div>
+      </div>
+
+      <div class="modal__field" id="album-bilder-feld" hidden>
+        <div class="album-auswahl__kopf">
+          <label>Eigene Bilder <span class="modal__optional">(nach den Grüssen)</span></label>
+          <button type="button" id="album-bilder-alle" class="linkbtn">Alle abwählen</button>
+        </div>
+        <div class="album-liste" id="album-bilder-liste"></div>
       </div>
 
       <p id="album-error" class="modal__error" hidden></p>
