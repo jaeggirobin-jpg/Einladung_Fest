@@ -62,6 +62,27 @@ export function passwortDiagnose() {
     : 'Die Functions sehen aktuell gar keine Passwort-Variable.';
 }
 
+/**
+ * Prüft den Authorization-Header gegen das Werkstatt-Passwort.
+ * Gibt null zurück, wenn alles stimmt – sonst die fertige Fehlerantwort.
+ */
+export function pruefeWerkstatt(event) {
+  const auth = event.headers.authorization || event.headers.Authorization || '';
+  const token = auth.replace(/^Bearer\s+/i, '').trim();
+  const expected = werkstattPasswort();
+
+  if (!expected) {
+    return jsonResp(500, {
+      error: 'Passwort nicht konfiguriert. Erwartet wird WERKSTATT_PASSWORD ' +
+             '(oder GRUESSE_ADMIN_PASSWORD), Scope "Functions". ' + passwortDiagnose()
+    });
+  }
+  if (!token || !timingSafeEqual(token, expected)) {
+    return jsonResp(401, { error: 'Nicht autorisiert.' });
+  }
+  return null;
+}
+
 export function timingSafeEqual(a, b) {
   if (a.length !== b.length) return false;
   let diff = 0;

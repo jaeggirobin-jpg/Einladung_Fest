@@ -24,6 +24,24 @@ const albumAlle    = document.getElementById('album-alle');
 const albumRun     = document.getElementById('album-run');
 const albumError   = document.getElementById('album-error');
 
+const albumBilderFeld  = document.getElementById('album-bilder-feld');
+const albumBilderListe = document.getElementById('album-bilder-liste');
+const albumBilderAlle  = document.getElementById('album-bilder-alle');
+
+const bilderBtn    = document.getElementById('bilder-btn');
+const bilderInput  = document.getElementById('bilder-input');
+const bilderListe  = document.getElementById('bilder-liste');
+const bilderCount  = document.getElementById('bilder-count');
+const bilderStatus = document.getElementById('bilder-status');
+const bilderError  = document.getElementById('bilder-error');
+
+/* Eigene Albumbilder: gleiche Grössen wie bei den Selfies –
+   3000px reichen für rund 25 cm Druckbreite bei 300 dpi. */
+const BILD_MAX_PX     = 3000;
+const BILD_QUALITAET  = 0.92;
+const THUMB_MAX_PX    = 640;
+const THUMB_QUALITAET = 0.75;
+
 let albumLogo = null;   // Logo einmal geladen, in Originalfarben
 
 const WIDMUNG_VORLAGE =
@@ -43,6 +61,7 @@ const scheduleBtn  = document.getElementById('schedule-btn');
 const settingsErr  = document.getElementById('settings-error');
 
 let allRows = [];
+let albumBilder = [];   // eigene Bilder, in gespeicherter Reihenfolge
 
 const saved = sessionStorage.getItem(STORAGE_KEY);
 if (saved) enterDashboard();
@@ -71,6 +90,7 @@ logoutBtn.addEventListener('click', () => {
 refreshBtn.addEventListener('click', async () => {
   await loadAndRender();
   await ladeEinstellungen();
+  await ladeAlbumBilder();
 });
 csvBtn.addEventListener('click', exportCsv);
 
@@ -108,6 +128,7 @@ async function enterDashboard(preloaded) {
   if (preloaded) applyData(preloaded);
   else await loadAndRender();
   await ladeEinstellungen();
+  await ladeAlbumBilder();
 }
 
 /* --- Freischaltung -------------------------------------------------- */
@@ -273,23 +294,296 @@ function csvCell(s) {
 }
 
 /* ===================================================================
+   Eigene Bilder fürs Album
+   Unabhängig von den Grüssen, erscheinen im Album danach.
+   Reihenfolge und Titel werden sofort gespeichert.
+   =================================================================== */
+
+bilderBtn.addEventListener('click', () => bilderInput.click());
+bilderInput.addEventListener('change', () => {
+  const dateien = [...bilderInput.files];
+  if (dateien.length) ladeBilderHoch(dateien);
+});
+
+async function ladeAlbumBilder() {
+  try {
+    albumBilder = (await bilderRequest('GET')).rows || [];
+  } catch (err) {
+    zeigeBilderFehler(err.message);
+    albumBilder = [];
+  }
+  zeichneBilder();
+}
+
+/* Jede Antwort enthält die vollständige Liste – nach jeder Änderung
+   wird damit einfach neu gezeichnet, statt lokal mitzurechnen. */
+async function bilderRequest(methodeOderBody) {
+  const token = sessionStorage.getItem(STORAGE_KEY);
+  if (!token) throw new Error('Nicht angemeldet.');
+
+  const istGet = methodeOderBody === 'GET';
+  const res = await fetch('/.netlify/functions/album-bilder', {
+    method: istGet ? 'GET' : 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      ...(istGet ? {} : { 'Content-Type': 'application/json' })
+    },
+    ...(istGet ? {} : { body: JSON.stringify(methodeOderBody) })
+  });
+
+  if (res.status === 401) {
+    sessionStorage.removeItem(STORAGE_KEY);
+    location.reload();
+    throw new Error('Nicht autorisiert.');
+  }
+  const out = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(out.error || `Fehler ${res.status}`);
+  return out;
+}
+
+function zeichneBilder() {
+  const n = albumBilder.length;
+  bilderCount.textContent = n === 0 ? 'keine' : `${n} ${n === 1 ? 'Bild' : 'Bilder'}`;
+
+  bilderListe.innerHTML = albumBilder.map((b, i) => `
+    <div class="bild-zeile" draggable="true" data-id="${esc(b.id)}">
+      <span class="bild-zeile__griff" title="Zum Verschieben ziehen" aria-hidden="true">⣿</span>
+      <span class="bild-zeile__nr">${i + 1}</span>
+      ${b.thumb_url
+        ? `<img class="bild-zeile__vorschau" src="${esc(b.thumb_url)}" alt="" loading="lazy">`
+        : '<span class="bild-zeile__vorschau"></span>'}
+      <input class="bild-zeile__titel" type="text" maxlength="120" data-titel
+             value="${esc(b.titel || '')}" placeholder="Bildtitel (freiwillig)">
+      <span class="bild-zeile__aktionen">
+        <button type="button" class="icon-btn" data-hoch title="Nach oben" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button type="button" class="icon-btn" data-runter title="Nach unten" ${i === n - 1 ? 'disabled' : ''}>↓</button>
+        <button type="button" class="icon-btn icon-btn--danger" data-weg title="Bild entfernen">✕</button>
+      </span>
+    </div>`).join('');
+}
+
+bilderListe.addEventListener('click', async (e) => {
+  const zeile = e.target.closest('.bild-zeile');
+  if (!zeile) return;
+  const id = zeile.dataset.id;
+  const i = albumBilder.findIndex(b => b.id === id);
+  if (i < 0) return;
+
+  if (e.target.closest('[data-hoch]'))   return verschiebe(i, i - 1);
+  if (e.target.closest('[data-runter]')) return verschiebe(i, i + 1);
+
+  if (e.target.closest('[data-weg]')) {
+    const name = albumBilder[i].titel || `Bild ${i + 1}`;
+    if (!confirm(`„${name}" wirklich aus dem Album entfernen?`)) return;
+    await mitFehler(() => bilderRequest({ aktion: 'loeschen', id }));
+  }
+});
+
+bilderListe.addEventListener('change', async (e) => {
+  const feld = e.target.closest('[data-titel]');
+  if (!feld) return;
+  const id = e.target.closest('.bild-zeile').dataset.id;
+  await mitFehler(() => bilderRequest({ aktion: 'titel', id, titel: feld.value }));
+});
+
+async function verschiebe(von, nach) {
+  if (nach < 0 || nach >= albumBilder.length) return;
+  const [bild] = albumBilder.splice(von, 1);
+  albumBilder.splice(nach, 0, bild);
+  zeichneBilder();   // sofort sichtbar, Speichern läuft danach
+  await speichereReihenfolge();
+}
+
+async function speichereReihenfolge() {
+  await mitFehler(() => bilderRequest({
+    aktion: 'reihenfolge',
+    ids: albumBilder.map(b => b.id)
+  }));
+}
+
+/* Antwort übernehmen und neu zeichnen, Fehler sichtbar machen */
+async function mitFehler(aufgabe) {
+  bilderError.hidden = true;
+  try {
+    const out = await aufgabe();
+    albumBilder = out.rows || [];
+  } catch (err) {
+    zeigeBilderFehler(err.message);
+    // Nach einem Fehler den echten Stand vom Server holen
+    try { albumBilder = (await bilderRequest('GET')).rows || []; } catch { /* still */ }
+  }
+  zeichneBilder();
+}
+
+function zeigeBilderFehler(msg) {
+  bilderError.textContent = msg;
+  bilderError.hidden = false;
+}
+
+/* --- Ziehen und Ablegen --------------------------------------------- */
+
+let ziehtId = null;
+
+bilderListe.addEventListener('dragstart', (e) => {
+  const zeile = e.target.closest('.bild-zeile');
+  if (!zeile) return;
+  ziehtId = zeile.dataset.id;
+  zeile.classList.add('bild-zeile--zieht');
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', ziehtId); } catch { /* Safari */ }
+});
+
+bilderListe.addEventListener('dragover', (e) => {
+  if (!ziehtId) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const zeile = e.target.closest('.bild-zeile');
+  bilderListe.querySelectorAll('.bild-zeile--ziel')
+    .forEach(z => z.classList.remove('bild-zeile--ziel'));
+  if (zeile && zeile.dataset.id !== ziehtId) zeile.classList.add('bild-zeile--ziel');
+});
+
+bilderListe.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  const zeile = e.target.closest('.bild-zeile');
+  const von = albumBilder.findIndex(b => b.id === ziehtId);
+  const nach = zeile ? albumBilder.findIndex(b => b.id === zeile.dataset.id) : -1;
+  beendeZiehen();
+  if (von < 0 || nach < 0 || von === nach) return;
+  await verschiebe(von, nach);
+});
+
+bilderListe.addEventListener('dragend', beendeZiehen);
+
+function beendeZiehen() {
+  ziehtId = null;
+  bilderListe.querySelectorAll('.bild-zeile--zieht, .bild-zeile--ziel')
+    .forEach(z => z.classList.remove('bild-zeile--zieht', 'bild-zeile--ziel'));
+}
+
+/* --- Hochladen ------------------------------------------------------ */
+
+async function ladeBilderHoch(dateien) {
+  const token = sessionStorage.getItem(STORAGE_KEY);
+  if (!token) return;
+
+  bilderError.hidden = true;
+  bilderBtn.disabled = true;
+  bilderStatus.hidden = false;
+
+  try {
+    for (let i = 0; i < dateien.length; i++) {
+      const datei = dateien[i];
+      const basis = dateien.length > 1 ? `Bild ${i + 1} von ${dateien.length}` : 'Bild';
+      bilderStatus.textContent = `${basis} wird vorbereitet …`;
+
+      const bild     = await ladeBildDatei(datei);
+      const original = await skaliereBild(bild, BILD_MAX_PX, BILD_QUALITAET);
+      const thumb    = await skaliereBild(bild, THUMB_MAX_PX, THUMB_QUALITAET);
+
+      const res = await fetch('/.netlify/functions/album-bild-upload-url', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const ziel = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(ziel.error || 'Upload konnte nicht vorbereitet werden.');
+
+      await ladeHoch(ziel.original.url, original, (p) => {
+        bilderStatus.textContent = `${basis} wird hochgeladen … ${p}%`;
+      });
+      await ladeHoch(ziel.thumb.url, thumb);
+
+      bilderStatus.textContent = `${basis} wird gespeichert …`;
+      const out = await bilderRequest({
+        aktion: 'anlegen',
+        foto_path: ziel.original.path,
+        thumb_path: ziel.thumb.path
+      });
+      albumBilder = out.rows || [];
+      zeichneBilder();
+    }
+  } catch (err) {
+    zeigeBilderFehler(err.message);
+  } finally {
+    bilderBtn.disabled = false;
+    bilderStatus.hidden = true;
+    bilderInput.value = '';   // gleiche Datei soll erneut wählbar sein
+  }
+}
+
+function ladeBildDatei(datei) {
+  return new Promise((resolve, reject) => {
+    if (!/^image\//.test(datei.type)) {
+      return reject(new Error(`„${datei.name}" ist keine Bilddatei.`));
+    }
+    const url = URL.createObjectURL(datei);
+    const bild = new Image();
+    bild.onload  = () => { URL.revokeObjectURL(url); resolve(bild); };
+    bild.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`„${datei.name}" liess sich nicht lesen.`)); };
+    bild.src = url;
+  });
+}
+
+async function skaliereBild(bild, maxPx, quality) {
+  let { width, height } = bild;
+  if (width > maxPx || height > maxPx) {      // nur verkleinern, nie hochrechnen
+    const faktor = maxPx / Math.max(width, height);
+    width  = Math.round(width * faktor);
+    height = Math.round(height * faktor);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(bild, 0, 0, width, height);
+
+  const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
+  if (!blob) throw new Error('Das Bild konnte nicht umgewandelt werden.');
+  return blob;
+}
+
+/* PUT über XMLHttpRequest – fetch() meldet keinen Upload-Fortschritt */
+function ladeHoch(url, blob, onFortschritt) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('Content-Type', 'image/jpeg');
+    if (onFortschritt) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onFortschritt(Math.round(e.loaded / e.total * 100));
+      };
+    }
+    xhr.onload  = () => (xhr.status >= 200 && xhr.status < 300)
+      ? resolve()
+      : reject(new Error(`Upload fehlgeschlagen (${xhr.status}).`));
+    xhr.onerror = () => reject(new Error('Upload fehlgeschlagen. Verbindung prüfen.'));
+    xhr.send(blob);
+  });
+}
+
+/* ===================================================================
    Fotoalbum: Auswahl und Druckdokument (A4 quer, ein Gruss pro Seite)
    =================================================================== */
 
 albumBtn.addEventListener('click', oeffneAlbumModal);
 albumModal.addEventListener('click', (e) => { if (e.target.dataset.close) albumModal.hidden = true; });
 albumRun.addEventListener('click', erzeugeAlbum);
-albumAlle.addEventListener('click', () => {
-  const alle = [...albumListe.querySelectorAll('input[type=checkbox]')];
+albumAlle.addEventListener('click', () => schalteAlle(albumListe, albumAlle));
+albumBilderAlle.addEventListener('click', () => schalteAlle(albumBilderListe, albumBilderAlle));
+
+function schalteAlle(liste, knopf) {
+  const alle = [...liste.querySelectorAll('input[type=checkbox]')];
   const zielZustand = alle.some(c => !c.checked);
   alle.forEach(c => { c.checked = zielZustand; });
-  albumAlle.textContent = zielZustand ? 'Alle abwählen' : 'Alle auswählen';
+  knopf.textContent = zielZustand ? 'Alle abwählen' : 'Alle auswählen';
   aktualisiereAlbumZahl();
-});
+}
 
 async function oeffneAlbumModal() {
   albumError.hidden = true;
-  if (allRows.length === 0) {
+  if (allRows.length === 0 && albumBilder.length === 0) {
     albumError.textContent = 'Es sind noch keine Grüsse eingegangen.';
     albumError.hidden = false;
   }
@@ -315,7 +609,24 @@ async function oeffneAlbumModal() {
       </span>
     </label>`).join('');
 
-  albumListe.querySelectorAll('input').forEach(c => c.addEventListener('change', aktualisiereAlbumZahl));
+  // Eigene Bilder in gespeicherter Reihenfolge, standardmässig alle dabei
+  albumBilderFeld.hidden = albumBilder.length === 0;
+  albumBilderListe.innerHTML = albumBilder.map((b, i) => `
+    <label class="album-zeile">
+      <input type="checkbox" value="${esc(b.id)}" checked>
+      ${b.thumb_url
+        ? `<img src="${esc(b.thumb_url)}" alt="">`
+        : '<span class="album-zeile__kein">–</span>'}
+      <span class="album-zeile__text">
+        <strong>${esc(b.titel || `Bild ${i + 1}`)}</strong>
+        <span class="album-zeile__datum">Platz ${i + 1} von ${albumBilder.length}</span>
+      </span>
+    </label>`).join('');
+  albumBilderAlle.textContent = 'Alle abwählen';
+
+  [albumListe, albumBilderListe].forEach(liste =>
+    liste.querySelectorAll('input').forEach(c =>
+      c.addEventListener('change', aktualisiereAlbumZahl)));
   aktualisiereAlbumZahl();
   albumModal.hidden = false;
 
@@ -330,10 +641,19 @@ function gewaehlteGruesse() {
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
 
+function gewaehlteBilder() {
+  const ids = new Set([...albumBilderListe.querySelectorAll('input:checked')].map(c => c.value));
+  return albumBilder.filter(b => ids.has(b.id));   // Reihenfolge wie gespeichert
+}
+
 function aktualisiereAlbumZahl() {
-  const n = gewaehlteGruesse().length;
-  albumRun.textContent = n ? `Album öffnen (${n} Grüsse)` : 'Album öffnen';
-  albumRun.disabled = n === 0;
+  const g = gewaehlteGruesse().length;
+  const b = gewaehlteBilder().length;
+  const teile = [];
+  if (g) teile.push(`${g} ${g === 1 ? 'Gruss' : 'Grüsse'}`);
+  if (b) teile.push(`${b} ${b === 1 ? 'Bild' : 'Bilder'}`);
+  albumRun.textContent = teile.length ? `Album öffnen (${teile.join(', ')})` : 'Album öffnen';
+  albumRun.disabled = g + b === 0;
 }
 
 /* Logo in Originalfarben – anders als auf den Etiketten */
@@ -357,14 +677,15 @@ async function ladeAlbumLogo() {
 
 function erzeugeAlbum() {
   const gruesse = gewaehlteGruesse();
-  if (gruesse.length === 0) {
-    albumError.textContent = 'Bitte mindestens einen Gruss auswählen.';
+  const bilder  = gewaehlteBilder();
+  if (gruesse.length + bilder.length === 0) {
+    albumError.textContent = 'Bitte mindestens einen Gruss oder ein Bild auswählen.';
     albumError.hidden = false;
     return;
   }
   // Als Blob-Dokument oeffnen, nicht per document.write: nur so laedt
   // ein neues Fenster zuverlaessig die Fotos aus dem Speicher nach.
-  const html = albumHtml(gruesse, albumWidmung.value, albumLogo);
+  const html = albumHtml(gruesse, bilder, albumWidmung.value, albumLogo);
   const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
   const fenster = window.open(url, '_blank');
   if (!fenster) {
@@ -379,7 +700,7 @@ function erzeugeAlbum() {
 
 /* --- Das Album-Dokument -------------------------------------------- */
 
-function albumHtml(gruesse, widmung, logo) {
+function albumHtml(gruesse, bilder, widmung, logo) {
   const DATUM = '31. August 2026';
 
   const logoSvg = (breiteMm) => logo
@@ -412,8 +733,29 @@ function albumHtml(gruesse, widmung, logo) {
     </section>`;
   }).join('\n');
 
+  // Eigene Bilder: ganzseitig, unbeschnitten, mit freiwilligem Titel.
+  // Die Seitenzahlen laufen hinter den Grüssen weiter.
+  const bildSeiten = bilder.map((b, i) => `
+    <section class="seite seite--bild">
+      <div class="bild">
+        ${b.foto_url
+          ? `<img src="${esc(b.foto_url)}" alt="${esc(b.titel || 'Bild')}" data-album-foto>`
+          : '<div class="foto__fehlt">Bild nicht verfügbar</div>'}
+      </div>
+      ${b.titel ? `<p class="bild__titel">${esc(b.titel)}</p>` : ''}
+      <span class="seitenzahl">${gruesse.length + i + 1}</span>
+    </section>`).join('\n');
+
   const namen = [...new Set(gruesse.map(r => (r.name || '').trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, 'de'));
+
+  const namenSeite = namen.length ? `
+  <section class="seite seite--namen">
+    <h2 class="namen__titel">Mit Grüssen von</h2>
+    <p class="namen__unter">${namen.length} ${namen.length === 1 ? 'Person' : 'Personen'}, die an diesem Abend dabei waren</p>
+    <div class="namen__liste">${namen.map(n => `<span>${esc(n)}</span>`).join('')}</div>
+    <p class="namen__schluss">Danke für diesen Abend.</p>
+  </section>` : '';
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -554,6 +896,26 @@ function albumHtml(gruesse, widmung, logo) {
   }
   .text__worte .punkt { margin: 0 3mm; color: #DCC9A4; }
 
+  /* --- Eigene Bilder: ganzseitig, unbeschnitten ---------------------- */
+  .seite--bild {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 15mm 18mm 16mm; gap: 7mm;
+  }
+  .seite--bild .bild {
+    flex: 1; min-height: 0; width: 100%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* contain statt cover: das Bild wird ganz gezeigt und nie beschnitten */
+  .seite--bild .bild img {
+    max-width: 100%; max-height: 100%;
+    width: auto; height: auto; object-fit: contain; display: block;
+  }
+  .bild__titel {
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    font-size: 13pt; color: #3A444B; margin: 0; text-align: center;
+    max-width: 200mm;
+  }
+
   .seitenzahl {
     position: absolute; right: 15mm; bottom: 11mm;
     font-size: 9pt; color: #B4BABE;
@@ -616,12 +978,8 @@ ${logoDefs}
 
 ${seiten}
 
-  <section class="seite seite--namen">
-    <h2 class="namen__titel">Mit Grüssen von</h2>
-    <p class="namen__unter">${namen.length} ${namen.length === 1 ? 'Person' : 'Personen'}, die an diesem Abend dabei waren</p>
-    <div class="namen__liste">${namen.map(n => `<span>${esc(n)}</span>`).join('')}</div>
-    <p class="namen__schluss">Danke für diesen Abend.</p>
-  </section>
+${bildSeiten}
+${namenSeite}
 
 </div>
 
@@ -647,7 +1005,8 @@ ${seiten}
     function pruefeAusrichtung(bild) {
       if (!bild.naturalWidth || !bild.naturalHeight) return;
       var seite = bild.closest('.seite');
-      if (!seite) return;
+      // Nur Grussseiten: eigene Bilder passen sich per CSS selbst ein
+      if (!seite || !seite.classList.contains('seite--gruss')) return;
       var verhaeltnis = bild.naturalWidth / bild.naturalHeight;
 
       // Deutlich breiter als hoch: eigenes Layout mit Foto oben

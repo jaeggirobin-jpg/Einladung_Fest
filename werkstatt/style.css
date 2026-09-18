@@ -342,7 +342,185 @@ html, body {
   padding: 60px 20px;
 }
 
+/* --- Eigene Albumbilder ---------------------------------------------- */
+
+.bilder__status {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.bilder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+.bilder:empty { display: none; }
+
+.bild-zeile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 11px;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.bild-zeile--zieht { opacity: 0.4; }
+.bild-zeile--ziel { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.15); }
+
+.bild-zeile__griff {
+  color: var(--text-muted);
+  cursor: grab;
+  line-height: 1;
+  padding: 2px;
+  flex: none;
+}
+.bild-zeile__griff:active { cursor: grabbing; }
+
+.bild-zeile__nr {
+  width: 22px;
+  flex: none;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.bild-zeile__vorschau {
+  width: 62px;
+  height: 46px;
+  flex: none;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--border);
+}
+
+.bild-zeile__titel {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 11px;
+  font-family: inherit;
+  font-size: 13.5px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.bild-zeile__titel:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(191, 133, 59, 0.15);
+}
+
+.bild-zeile__aktionen { display: flex; gap: 4px; flex: none; }
+
+/* Auf schmalen Schirmen bleibt zu wenig Platz für eine Zeile:
+   Der Titel rutscht dann unter Vorschau und Knöpfe. */
+@media (max-width: 620px) {
+  .bild-zeile { flex-wrap: wrap; }
+  .bild-zeile__aktionen { margin-left: auto; }
+  .bild-zeile__titel { order: 10; flex-basis: 100%; }
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.icon-btn:hover:not(:disabled) { background: var(--cream); border-color: var(--gold-light); }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
+.icon-btn--danger:hover:not(:disabled) { color: var(--no); border-color: var(--no); }
+
 /* --- Album-Auswahl --------------------------------------------------- */
+
+/* Grundgeruest der Dialoge – bisher nur im Haupt-Admin vorhanden,
+   dadurch stand der Album-Dialog ungestaltet im Seitenfluss. */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(42, 49, 56, 0.55);
+  backdrop-filter: blur(4px);
+}
+
+.modal__card {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 28px 28px 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--slate-dark);
+  margin: 0 0 10px;
+}
+
+.modal__text {
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0 0 22px;
+}
+
+.modal__field { margin-bottom: 18px; }
+
+.modal__field > label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.modal__hint {
+  color: var(--text-muted);
+  font-size: 11px;
+  margin: 5px 0 0;
+  line-height: 1.45;
+}
+
+.modal__error {
+  color: var(--no);
+  background: rgba(184, 83, 60, 0.08);
+  border: 1px solid rgba(184, 83, 60, 0.3);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+  margin: 4px 0 14px;
+}
+
+.modal__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
 .modal__optional {
   color: var(--text-muted);
