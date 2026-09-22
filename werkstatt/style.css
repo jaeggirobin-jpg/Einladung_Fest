@@ -347,7 +347,16 @@ html, body {
 .bilder__status {
   font-size: 13px;
   color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
+
+/* Bericht nach einem Upload mit Ausfällen */
+.bilder-fehler__liste {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+  line-height: 1.5;
+}
+.bilder-fehler__liste li { margin-bottom: 2px; }
 
 .bilder {
   display: flex;
