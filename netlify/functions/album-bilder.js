@@ -33,8 +33,35 @@ export async function handler(event) {
     case 'titel':     return titelAendern(body);
     case 'reihenfolge': return sortieren(body);
     case 'loeschen':  return loeschen(body);
+    case 'aufraeumen': return aufraeumen(body);
     default:          return jsonResp(400, { error: 'Unbekannte Aktion.' });
   }
+}
+
+/* --- Fehlermeldungen ------------------------------------------------
+   Der Bereich ist passwortgeschützt, deshalb darf die echte Meldung der
+   Datenbank durchgereicht werden. Ohne sie bleibt nur "hat nicht
+   geklappt" – und damit ist niemandem geholfen. */
+
+function dbFehler(text, error) {
+  console.error(text, error);
+
+  // 42P01 = Tabelle gibt es nicht. Der mit Abstand häufigste Fall,
+  // wenn die Migration noch nicht eingespielt wurde.
+  if (error?.code === '42P01') {
+    return jsonResp(500, {
+      error: 'Die Tabelle album_bilder fehlt in der Datenbank. Bitte einmal ' +
+             'supabase/migration_v7.sql im Supabase-SQL-Editor ausführen.',
+      code: error.code
+    });
+  }
+
+  const details = [error?.message, error?.details, error?.hint]
+    .filter(Boolean).join(' · ');
+  return jsonResp(500, {
+    error: details ? `${text} (${details})` : text,
+    code: error?.code || null
+  });
 }
 
 /* --- Aktionen ------------------------------------------------------- */
@@ -52,11 +79,16 @@ async function anlegen(body) {
   }
 
   // Neues Bild ans Ende hängen
-  const { data: letzte } = await supabase
+  const { data: letzte, error: leseFehler } = await supabase
     .from('album_bilder')
     .select('position')
     .order('position', { ascending: false })
     .limit(1);
+
+  if (leseFehler) {
+    await entferneDateien([fotoPath, thumbPath]);
+    return dbFehler('Bild konnte nicht gespeichert werden.', leseFehler);
+  }
   const position = letzte && letzte.length ? (letzte[0].position || 0) + 1 : 0;
 
   const { error } = await supabase.from('album_bilder').insert({
@@ -67,8 +99,9 @@ async function anlegen(body) {
   });
 
   if (error) {
-    console.error('Insert error:', error);
-    return jsonResp(500, { error: 'Bild konnte nicht gespeichert werden.' });
+    // Ohne Datenbankzeile sind die hochgeladenen Dateien nur Ballast
+    await entferneDateien([fotoPath, thumbPath]);
+    return dbFehler('Bild konnte nicht gespeichert werden.', error);
   }
   return liefereListe();
 }
@@ -82,10 +115,7 @@ async function titelAendern(body) {
     .update({ titel: kuerze(body.titel, 120) })
     .eq('id', id);
 
-  if (error) {
-    console.error('Update error:', error);
-    return jsonResp(500, { error: 'Titel konnte nicht gespeichert werden.' });
-  }
+  if (error) return dbFehler('Titel konnte nicht gespeichert werden.', error);
   return liefereListe();
 }
 
@@ -101,10 +131,7 @@ async function sortieren(body) {
       supabase.from('album_bilder').update({ position: i + n }).eq('id', id)
     ));
     const fehler = ergebnisse.find(r => r.error);
-    if (fehler) {
-      console.error('Sort error:', fehler.error);
-      return jsonResp(500, { error: 'Reihenfolge konnte nicht gespeichert werden.' });
-    }
+    if (fehler) return dbFehler('Reihenfolge konnte nicht gespeichert werden.', fehler.error);
   }
   return liefereListe();
 }
@@ -119,26 +146,61 @@ async function loeschen(body) {
     .eq('id', id)
     .maybeSingle();
 
-  if (leseFehler) {
-    console.error('Select error:', leseFehler);
-    return jsonResp(500, { error: 'Bild konnte nicht gelesen werden.' });
-  }
+  if (leseFehler) return dbFehler('Bild konnte nicht gelesen werden.', leseFehler);
 
   const { error } = await supabase.from('album_bilder').delete().eq('id', id);
-  if (error) {
-    console.error('Delete error:', error);
-    return jsonResp(500, { error: 'Bild konnte nicht gelöscht werden.' });
-  }
+  if (error) return dbFehler('Bild konnte nicht gelöscht werden.', error);
 
   // Dateien erst nach dem Löschen der Zeile entfernen: schlägt das fehl,
   // bleibt nur eine verwaiste Datei zurück, kein kaputter Eintrag.
-  const pfade = [zeile?.foto_path, zeile?.thumb_path].filter(Boolean);
-  if (pfade.length) {
-    const { error: storageFehler } = await supabase.storage.from(BUCKET).remove(pfade);
-    if (storageFehler) console.error('Storage remove error:', storageFehler);
-  }
+  await entferneDateien([zeile?.foto_path, zeile?.thumb_path]);
 
   return liefereListe();
+}
+
+/* Dateien im Ordner album/, zu denen es keine Zeile gibt. Solche
+   entstehen, wenn der Upload durchläuft, das Speichern in der Datenbank
+   aber scheitert. Mit nur_zaehlen wird bloss gezählt, ohne zu löschen. */
+async function aufraeumen(body) {
+  const { data: zeilen, error } = await supabase
+    .from('album_bilder')
+    .select('foto_path, thumb_path');
+  if (error) return dbFehler('Bilder konnten nicht geladen werden.', error);
+
+  const benutzt = new Set(
+    zeilen.flatMap(r => [r.foto_path, r.thumb_path]).filter(Boolean)
+  );
+
+  // Alles jünger als eine Stunde bleibt unangetastet: es könnte zu
+  // einem Upload gehören, der gerade noch läuft.
+  const schonze = Date.now() - 60 * 60 * 1000;
+  const verwaist = [];
+  let offset = 0;
+
+  for (;;) {
+    const { data: dateien, error: listeFehler } = await supabase.storage
+      .from(BUCKET)
+      .list('album', { limit: 100, offset });
+
+    if (listeFehler) {
+      console.error('Storage list error:', listeFehler);
+      return jsonResp(500, { error: 'Der Speicher liess sich nicht durchsehen.' });
+    }
+    if (!dateien || dateien.length === 0) break;
+
+    for (const d of dateien) {
+      const pfad = `album/${d.name}`;
+      const alter = d.created_at ? new Date(d.created_at).getTime() : 0;
+      if (!benutzt.has(pfad) && alter < schonze) verwaist.push(pfad);
+    }
+    if (dateien.length < 100) break;
+    offset += dateien.length;
+  }
+
+  if (body.nur_zaehlen) return jsonResp(200, { verwaist: verwaist.length });
+
+  await entferneDateien(verwaist);
+  return jsonResp(200, { entfernt: verwaist.length });
 }
 
 /* --- Liste ---------------------------------------------------------- */
@@ -150,10 +212,7 @@ async function liefereListe() {
     .order('position', { ascending: true })
     .order('created_at', { ascending: true });
 
-  if (error) {
-    console.error('Select error:', error);
-    return jsonResp(500, { error: 'Bilder konnten nicht geladen werden.' });
-  }
+  if (error) return dbFehler('Bilder konnten nicht geladen werden.', error);
 
   const pfade = [...new Set(
     data.flatMap(r => [r.thumb_path, r.foto_path]).filter(Boolean)
@@ -176,6 +235,15 @@ async function liefereListe() {
   }));
 
   return jsonResp(200, { rows, count: rows.length });
+}
+
+/* Dateien aus dem Speicher nehmen. Fehler werden nur notiert: eine
+   übrig gebliebene Datei ist lästig, aber kein Grund zum Abbruch. */
+async function entferneDateien(pfade) {
+  const liste = pfade.filter(Boolean);
+  if (!liste.length) return;
+  const { error } = await supabase.storage.from(BUCKET).remove(liste);
+  if (error) console.error('Storage remove error:', error);
 }
 
 function kuerze(wert, max) {

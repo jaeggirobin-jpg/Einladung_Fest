@@ -358,6 +358,21 @@ html, body {
 }
 .bilder-fehler__liste li { margin-bottom: 2px; }
 
+.bilder-fehler__grund {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+/* Wartungsknopf: gehört dazu, soll sich aber nicht vordrängen */
+.bilder__putzen {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-decoration-color: var(--border);
+}
+.bilder__putzen:hover { color: var(--gold); }
+.bilder__putzen:disabled { opacity: 0.5; cursor: default; }
+
 .bilder {
   display: flex;
   flex-direction: column;
