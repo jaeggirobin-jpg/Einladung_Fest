@@ -461,67 +461,183 @@ function beendeZiehen() {
     .forEach(z => z.classList.remove('bild-zeile--zieht', 'bild-zeile--ziel'));
 }
 
-/* --- Hochladen ------------------------------------------------------ */
+/* --- Hochladen ------------------------------------------------------
+   In Etappen statt in einem Rutsch: viele grosse Fotos auf einmal
+   sprengen sonst den Speicher des Browsers. Zwischen den Etappen gibt
+   es eine kurze Pause, damit belegter Speicher zurückgegeben wird.
+   Jedes Bild steht für sich – ein Fehler stoppt die übrigen nicht,
+   und jedes fertige Bild ist sofort gespeichert. */
+
+const ETAPPE_GROESSE = 4;      // Bilder pro Etappe
+const ETAPPE_PAUSE   = 500;    // Verschnaufpause dazwischen, ms
+const VERSUCHE       = 3;      // Anläufe pro Bild
+
+let uploadLaeuft   = false;
+let gescheiterte   = [];       // Dateien, die einen zweiten Anlauf verdienen
 
 async function ladeBilderHoch(dateien) {
   const token = sessionStorage.getItem(STORAGE_KEY);
-  if (!token) return;
+  if (!token || uploadLaeuft) return;
 
   bilderError.hidden = true;
   bilderBtn.disabled = true;
   bilderStatus.hidden = false;
+  uploadLaeuft = true;
+  gescheiterte = [];
+  window.addEventListener('beforeunload', warneVorAbbruch);
+
+  const gesamt   = dateien.length;
+  const etappen  = Math.ceil(gesamt / ETAPPE_GROESSE);
+  const misslungen = [];
+  let fertig = 0;
 
   try {
-    for (let i = 0; i < dateien.length; i++) {
-      const datei = dateien[i];
-      const basis = dateien.length > 1 ? `Bild ${i + 1} von ${dateien.length}` : 'Bild';
-      bilderStatus.textContent = `${basis} wird vorbereitet …`;
+    for (let e = 0; e < etappen; e++) {
+      const etappe = dateien.slice(e * ETAPPE_GROESSE, (e + 1) * ETAPPE_GROESSE);
 
-      const bild     = await ladeBildDatei(datei);
-      const original = await skaliereBild(bild, BILD_MAX_PX, BILD_QUALITAET);
-      const thumb    = await skaliereBild(bild, THUMB_MAX_PX, THUMB_QUALITAET);
+      for (const datei of etappe) {
+        const kopf = gesamt > 1
+          ? `Bild ${fertig + 1} von ${gesamt}${etappen > 1 ? ` · Etappe ${e + 1}/${etappen}` : ''}`
+          : 'Bild';
+        try {
+          await ladeEinBildHoch(datei, token, (text) => {
+            bilderStatus.textContent = `${kopf}: ${text}`;
+          });
+        } catch (err) {
+          misslungen.push({ datei, grund: err.message });
+        }
+        fertig++;
+      }
 
-      const res = await fetch('/.netlify/functions/album-bild-upload-url', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const ziel = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(ziel.error || 'Upload konnte nicht vorbereitet werden.');
-
-      await ladeHoch(ziel.original.url, original, (p) => {
-        bilderStatus.textContent = `${basis} wird hochgeladen … ${p}%`;
-      });
-      await ladeHoch(ziel.thumb.url, thumb);
-
-      bilderStatus.textContent = `${basis} wird gespeichert …`;
-      const out = await bilderRequest({
-        aktion: 'anlegen',
-        foto_path: ziel.original.path,
-        thumb_path: ziel.thumb.path
-      });
-      albumBilder = out.rows || [];
       zeichneBilder();
+
+      if (e < etappen - 1) {
+        bilderStatus.textContent =
+          `Etappe ${e + 1} von ${etappen} fertig – kurze Pause …`;
+        await warte(ETAPPE_PAUSE);
+      }
     }
-  } catch (err) {
-    zeigeBilderFehler(err.message);
   } finally {
+    window.removeEventListener('beforeunload', warneVorAbbruch);
+    uploadLaeuft = false;
     bilderBtn.disabled = false;
     bilderStatus.hidden = true;
     bilderInput.value = '';   // gleiche Datei soll erneut wählbar sein
+    zeichneBilder();
   }
+
+  if (misslungen.length) meldeMisslungen(misslungen, gesamt);
 }
 
-function ladeBildDatei(datei) {
-  return new Promise((resolve, reject) => {
-    if (!/^image\//.test(datei.type)) {
-      return reject(new Error(`„${datei.name}" ist keine Bilddatei.`));
+/* Ein einzelnes Bild: verkleinern, hochladen, speichern.
+   Der Upload wird bei einem Fehlschlag wiederholt – mit frischen
+   Ziel-URLs, denn eine signierte Upload-URL gilt nur einmal. */
+async function ladeEinBildHoch(datei, token, melde) {
+  melde('wird vorbereitet …');
+
+  const bild = await ladeBildDatei(datei);
+  let original, thumb;
+  try {
+    original = await skaliereBild(bild, BILD_MAX_PX, BILD_QUALITAET);
+    thumb    = await skaliereBild(bild, THUMB_MAX_PX, THUMB_QUALITAET);
+  } finally {
+    gibBildFrei(bild);   // Speicher sofort zurückgeben, nicht erst beim Aufräumen
+  }
+
+  const ziel = await mitWiederholung(async () => {
+    const res = await fetch('/.netlify/functions/album-bild-upload-url', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(out.error || 'Upload konnte nicht vorbereitet werden.');
+
+    await ladeHoch(out.original.url, original, (p) => melde(`wird hochgeladen … ${p}%`));
+    await ladeHoch(out.thumb.url, thumb);
+    return out;
+  }, melde);
+
+  melde('wird gespeichert …');
+  const gespeichert = await mitWiederholung(() => bilderRequest({
+    aktion: 'anlegen',
+    foto_path: ziel.original.path,
+    thumb_path: ziel.thumb.path
+  }), melde);
+
+  albumBilder = gespeichert.rows || [];
+}
+
+async function mitWiederholung(aufgabe, melde) {
+  let letzter;
+  for (let versuch = 1; versuch <= VERSUCHE; versuch++) {
+    try {
+      return await aufgabe();
+    } catch (err) {
+      letzter = err;
+      if (versuch === VERSUCHE) break;
+      melde?.(`Anlauf ${versuch} fehlgeschlagen, neuer Versuch …`);
+      await warte(700 * versuch);
     }
+  }
+  throw letzter;
+}
+
+function meldeMisslungen(misslungen, gesamt) {
+  gescheiterte = misslungen.map(m => m.datei);
+  const geschafft = gesamt - misslungen.length;
+  const namen = misslungen
+    .map(m => `<li>${esc(m.datei.name)} – ${esc(m.grund)}</li>`).join('');
+
+  bilderError.innerHTML =
+    `<strong>${geschafft} von ${gesamt} Bildern sind im Album.</strong>` +
+    `<ul class="bilder-fehler__liste">${namen}</ul>` +
+    `<button type="button" class="linkbtn" data-nochmals>` +
+    `${misslungen.length === 1 ? 'Dieses Bild' : 'Diese Bilder'} nochmals versuchen</button>`;
+  bilderError.hidden = false;
+}
+
+bilderError.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-nochmals]') || gescheiterte.length === 0) return;
+  const nochmals = gescheiterte;
+  gescheiterte = [];
+  ladeBilderHoch(nochmals);
+});
+
+function warneVorAbbruch(e) {
+  e.preventDefault();
+  e.returnValue = '';   // Browser zeigt seinen eigenen Hinweis
+}
+
+const warte = (ms) => new Promise(r => setTimeout(r, ms));
+
+/* createImageBitmap dekodiert ausserhalb des Hauptfensters und lässt
+   sich danach gezielt freigeben – bei vielen Fotos der Unterschied
+   zwischen "läuft durch" und "Tab stürzt ab". */
+async function ladeBildDatei(datei) {
+  if (!/^image\//.test(datei.type)) {
+    throw new Error('keine Bilddatei');
+  }
+  if (window.createImageBitmap) {
+    try {
+      return await createImageBitmap(datei, { imageOrientation: 'from-image' });
+    } catch { /* ältere Browser: unten weiter */ }
+  }
+  return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(datei);
     const bild = new Image();
     bild.onload  = () => { URL.revokeObjectURL(url); resolve(bild); };
-    bild.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`„${datei.name}" liess sich nicht lesen.`)); };
+    bild.onerror = () => {
+      URL.revokeObjectURL(url);
+      // Häufigster Fall sind iPhone-Fotos im HEIC-Format
+      reject(new Error('Format wird vom Browser nicht gelesen (z. B. HEIC)'));
+    };
     bild.src = url;
   });
+}
+
+function gibBildFrei(bild) {
+  if (typeof bild.close === 'function') bild.close();   // ImageBitmap
+  else if ('src' in bild) bild.src = '';                // <img>
 }
 
 async function skaliereBild(bild, maxPx, quality) {
@@ -540,7 +656,10 @@ async function skaliereBild(bild, maxPx, quality) {
   ctx.drawImage(bild, 0, 0, width, height);
 
   const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', quality));
-  if (!blob) throw new Error('Das Bild konnte nicht umgewandelt werden.');
+  // Leinwand leeren: sonst hält jedes verarbeitete Foto seinen Speicher
+  // bis zur nächsten Aufräumrunde des Browsers fest.
+  canvas.width = canvas.height = 0;
+  if (!blob) throw new Error('liess sich nicht umwandeln');
   return blob;
 }
 
@@ -550,6 +669,9 @@ function ladeHoch(url, blob, onFortschritt) {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', url);
     xhr.setRequestHeader('Content-Type', 'image/jpeg');
+    // Ohne Zeitlimit bleibt eine hängende Verbindung ewig stehen und
+    // der ganze Durchgang kommt nie zum Ende.
+    xhr.timeout = 120000;
     if (onFortschritt) {
       xhr.upload.onprogress = (e) => {
         if (e.lengthComputable) onFortschritt(Math.round(e.loaded / e.total * 100));
@@ -557,8 +679,9 @@ function ladeHoch(url, blob, onFortschritt) {
     }
     xhr.onload  = () => (xhr.status >= 200 && xhr.status < 300)
       ? resolve()
-      : reject(new Error(`Upload fehlgeschlagen (${xhr.status}).`));
-    xhr.onerror = () => reject(new Error('Upload fehlgeschlagen. Verbindung prüfen.'));
+      : reject(new Error(`Upload fehlgeschlagen (${xhr.status})`));
+    xhr.onerror   = () => reject(new Error('Verbindung unterbrochen'));
+    xhr.ontimeout = () => reject(new Error('Zeitüberschreitung beim Upload'));
     xhr.send(blob);
   });
 }
