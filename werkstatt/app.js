@@ -34,6 +34,7 @@ const bilderListe  = document.getElementById('bilder-liste');
 const bilderCount  = document.getElementById('bilder-count');
 const bilderStatus = document.getElementById('bilder-status');
 const bilderError  = document.getElementById('bilder-error');
+const bilderPutzen = document.getElementById('bilder-putzen');
 
 /* Eigene Albumbilder: gleiche Grössen wie bei den Selfies –
    3000px reichen für rund 25 cm Druckbreite bei 300 dpi. */
@@ -337,7 +338,13 @@ async function bilderRequest(methodeOderBody) {
     throw new Error('Nicht autorisiert.');
   }
   const out = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(out.error || `Fehler ${res.status}`);
+  if (!res.ok) {
+    const err = new Error(out.error || `Fehler ${res.status}`);
+    // Ein Datenbankfehler oder eine abgelehnte Anfrage fällt beim
+    // zweiten Anlauf genauso aus – nur Netzprobleme lohnen eine Wiederholung.
+    err.endgueltig = Boolean(out.code) || (res.status >= 400 && res.status < 500);
+    throw err;
+  }
   return out;
 }
 
@@ -471,6 +478,7 @@ function beendeZiehen() {
 const ETAPPE_GROESSE = 4;      // Bilder pro Etappe
 const ETAPPE_PAUSE   = 500;    // Verschnaufpause dazwischen, ms
 const VERSUCHE       = 3;      // Anläufe pro Bild
+const ABBRUCH_NACH   = 3;      // gleiche Fehlermeldung hintereinander
 
 let uploadLaeuft   = false;
 let gescheiterte   = [];       // Dateien, die einen zweiten Anlauf verdienen
@@ -486,34 +494,44 @@ async function ladeBilderHoch(dateien) {
   gescheiterte = [];
   window.addEventListener('beforeunload', warneVorAbbruch);
 
-  const gesamt   = dateien.length;
-  const etappen  = Math.ceil(gesamt / ETAPPE_GROESSE);
+  const gesamt  = dateien.length;
+  const etappen = Math.ceil(gesamt / ETAPPE_GROESSE);
   const misslungen = [];
-  let fertig = 0;
+  let uebrig = [];
+  let abbruchGrund = null;
+  let inFolge = 0, letzterGrund = null;
 
   try {
-    for (let e = 0; e < etappen; e++) {
-      const etappe = dateien.slice(e * ETAPPE_GROESSE, (e + 1) * ETAPPE_GROESSE);
+    for (let i = 0; i < gesamt; i++) {
+      const etappe = Math.floor(i / ETAPPE_GROESSE) + 1;
+      const kopf = gesamt > 1
+        ? `Bild ${i + 1} von ${gesamt}${etappen > 1 ? ` · Etappe ${etappe}/${etappen}` : ''}`
+        : 'Bild';
 
-      for (const datei of etappe) {
-        const kopf = gesamt > 1
-          ? `Bild ${fertig + 1} von ${gesamt}${etappen > 1 ? ` · Etappe ${e + 1}/${etappen}` : ''}`
-          : 'Bild';
-        try {
-          await ladeEinBildHoch(datei, token, (text) => {
-            bilderStatus.textContent = `${kopf}: ${text}`;
-          });
-        } catch (err) {
-          misslungen.push({ datei, grund: err.message });
+      try {
+        await ladeEinBildHoch(dateien[i], token, (text) => {
+          bilderStatus.textContent = `${kopf}: ${text}`;
+        });
+        inFolge = 0;
+        letzterGrund = null;
+      } catch (err) {
+        misslungen.push({ datei: dateien[i], grund: err.message });
+        inFolge = err.message === letzterGrund ? inFolge + 1 : 1;
+        letzterGrund = err.message;
+
+        // Immer derselbe Fehler: die Ursache liegt nicht an den Bildern.
+        // Dann bringt es nichts, den Rest auch noch hochzuladen.
+        if (inFolge >= ABBRUCH_NACH) {
+          abbruchGrund = err.message;
+          uebrig = dateien.slice(i + 1);
+          break;
         }
-        fertig++;
       }
 
-      zeichneBilder();
-
-      if (e < etappen - 1) {
-        bilderStatus.textContent =
-          `Etappe ${e + 1} von ${etappen} fertig – kurze Pause …`;
+      // Etappenwechsel: neu zeichnen und dem Browser Luft lassen
+      if ((i + 1) % ETAPPE_GROESSE === 0 && i + 1 < gesamt) {
+        zeichneBilder();
+        bilderStatus.textContent = `Etappe ${etappe} von ${etappen} fertig – kurze Pause …`;
         await warte(ETAPPE_PAUSE);
       }
     }
@@ -526,7 +544,7 @@ async function ladeBilderHoch(dateien) {
     zeichneBilder();
   }
 
-  if (misslungen.length) meldeMisslungen(misslungen, gesamt);
+  if (misslungen.length) meldeMisslungen(misslungen, uebrig, gesamt, abbruchGrund);
 }
 
 /* Ein einzelnes Bild: verkleinern, hochladen, speichern.
@@ -574,7 +592,8 @@ async function mitWiederholung(aufgabe, melde) {
       return await aufgabe();
     } catch (err) {
       letzter = err;
-      if (versuch === VERSUCHE) break;
+      // Endgültige Fehler wiederholen sich nur – z. B. eine fehlende Tabelle
+      if (err.endgueltig || versuch === VERSUCHE) break;
       melde?.(`Anlauf ${versuch} fehlgeschlagen, neuer Versuch …`);
       await warte(700 * versuch);
     }
@@ -582,17 +601,27 @@ async function mitWiederholung(aufgabe, melde) {
   throw letzter;
 }
 
-function meldeMisslungen(misslungen, gesamt) {
-  gescheiterte = misslungen.map(m => m.datei);
-  const geschafft = gesamt - misslungen.length;
-  const namen = misslungen
-    .map(m => `<li>${esc(m.datei.name)} – ${esc(m.grund)}</li>`).join('');
+function meldeMisslungen(misslungen, uebrig, gesamt, abbruchGrund) {
+  // Nicht versuchte Bilder gehören mit in den zweiten Anlauf
+  gescheiterte = [...misslungen.map(m => m.datei), ...uebrig];
+  const geschafft = gesamt - misslungen.length - uebrig.length;
 
-  bilderError.innerHTML =
-    `<strong>${geschafft} von ${gesamt} Bildern sind im Album.</strong>` +
-    `<ul class="bilder-fehler__liste">${namen}</ul>` +
+  // Bei immer derselben Ursache genügt sie einmal – sonst stehen hier
+  // vierzig Zeilen mit dem gleichen Satz.
+  const kopf = abbruchGrund
+    ? `<strong>${geschafft} von ${gesamt} Bildern sind im Album.</strong>` +
+      `<p class="bilder-fehler__grund">Abgebrochen, weil ${ABBRUCH_NACH} Bilder ` +
+      `hintereinander am Gleichen gescheitert sind:<br>${esc(abbruchGrund)}</p>` +
+      (uebrig.length ? `<p class="bilder-fehler__grund">${uebrig.length} weitere ` +
+        `${uebrig.length === 1 ? 'Bild wurde' : 'Bilder wurden'} gar nicht erst versucht.</p>` : '')
+    : `<strong>${geschafft} von ${gesamt} Bildern sind im Album.</strong>` +
+      `<ul class="bilder-fehler__liste">${misslungen
+        .map(m => `<li>${esc(m.datei.name)} – ${esc(m.grund)}</li>`).join('')}</ul>`;
+
+  bilderError.innerHTML = kopf +
     `<button type="button" class="linkbtn" data-nochmals>` +
-    `${misslungen.length === 1 ? 'Dieses Bild' : 'Diese Bilder'} nochmals versuchen</button>`;
+    `${gescheiterte.length === 1 ? 'Dieses Bild' : `Diese ${gescheiterte.length} Bilder`} ` +
+    `nochmals versuchen</button>`;
   bilderError.hidden = false;
 }
 
@@ -601,6 +630,43 @@ bilderError.addEventListener('click', (e) => {
   const nochmals = gescheiterte;
   gescheiterte = [];
   ladeBilderHoch(nochmals);
+});
+
+/* --- Verwaiste Dateien ----------------------------------------------
+   Scheitert das Speichern in der Datenbank, liegt das hochgeladene Bild
+   trotzdem schon im Speicher. Neuere Fehlschläge räumen selbst auf,
+   ältere lassen sich hiermit loswerden. */
+
+bilderPutzen.addEventListener('click', async () => {
+  if (uploadLaeuft) return;
+  bilderError.hidden = true;
+  bilderPutzen.disabled = true;
+  const beschriftung = bilderPutzen.textContent;
+  bilderPutzen.textContent = 'sucht …';
+
+  try {
+    const { verwaist } = await bilderRequest({ aktion: 'aufraeumen', nur_zaehlen: true });
+    if (!verwaist) {
+      bilderStatus.textContent = 'Keine verwaisten Dateien gefunden.';
+      bilderStatus.hidden = false;
+      setTimeout(() => { bilderStatus.hidden = true; }, 4000);
+      return;
+    }
+    const frage = verwaist === 1
+      ? 'Eine Datei gehört zu keinem Bild im Album. Endgültig löschen?'
+      : `${verwaist} Dateien gehören zu keinem Bild im Album. Endgültig löschen?`;
+    if (!confirm(frage)) return;
+
+    const { entfernt } = await bilderRequest({ aktion: 'aufraeumen' });
+    bilderStatus.textContent = `${entfernt} ${entfernt === 1 ? 'Datei' : 'Dateien'} entfernt.`;
+    bilderStatus.hidden = false;
+    setTimeout(() => { bilderStatus.hidden = true; }, 5000);
+  } catch (err) {
+    zeigeBilderFehler(err.message);
+  } finally {
+    bilderPutzen.disabled = false;
+    bilderPutzen.textContent = beschriftung;
+  }
 });
 
 function warneVorAbbruch(e) {
